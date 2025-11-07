@@ -222,12 +222,12 @@ Pricing: {submission.business_model.pricing}
 Cost Structure: {submission.business_model.cost_structure}
 
 Current Financial Inputs:
-- Year 1 Revenue Target: ${submission.financials.year1_revenue:,.0f if submission.financials.year1_revenue else 'Not provided'}
-- Year 2 Revenue Target: ${submission.financials.year2_revenue:,.0f if submission.financials.year2_revenue else 'Not provided'}
-- Year 3 Revenue Target: ${submission.financials.year3_revenue:,.0f if submission.financials.year3_revenue else 'Not provided'}
-- Gross Margin: {submission.financials.gross_margin if submission.financials.gross_margin else 'Not provided'}%
-- Monthly Burn Rate: ${submission.financials.burn_rate:,.0f if submission.financials.burn_rate else 'Not provided'}
-- Funding Needed: ${submission.financials.funding_needed:,.0f if submission.financials.funding_needed else 'Not provided'}
+- Year 1 Revenue Target: {'$' + f'{submission.financials.year1_revenue:,.0f}' if submission.financials.year1_revenue else 'Not provided'}
+- Year 2 Revenue Target: {'$' + f'{submission.financials.year2_revenue:,.0f}' if submission.financials.year2_revenue else 'Not provided'}
+- Year 3 Revenue Target: {'$' + f'{submission.financials.year3_revenue:,.0f}' if submission.financials.year3_revenue else 'Not provided'}
+- Gross Margin: {f'{submission.financials.gross_margin}%' if submission.financials.gross_margin else 'Not provided'}
+- Monthly Burn Rate: {'$' + f'{submission.financials.burn_rate:,.0f}' if submission.financials.burn_rate else 'Not provided'}
+- Funding Needed: {'$' + f'{submission.financials.funding_needed:,.0f}' if submission.financials.funding_needed else 'Not provided'}
 """
 
         if market_research and market_research.industry_benchmarks:

@@ -117,9 +117,9 @@ class CompanyComparable(BaseModel):
 
 class MarketResearch(BaseModel):
     """Market research output from Research Agent."""
-    market_overview: str = Field(description="Market overview and trends")
-    market_size_validation: str = Field(description="Market size validation")
-    competitive_landscape: str = Field(description="Competitive landscape analysis")
+    market_overview: str = Field(default="", description="Market overview and trends")
+    market_size_validation: str = Field(default="", description="Market size validation")
+    competitive_landscape: str = Field(default="", description="Competitive landscape analysis")
     industry_benchmarks: Dict[str, Any] = Field(
         default_factory=dict,
         description="Industry benchmark metrics"
@@ -138,30 +138,30 @@ class MarketResearch(BaseModel):
 
 class RiskItem(BaseModel):
     """Risk assessment item."""
-    category: str = Field(description="Risk category (market, operational, financial, etc.)")
-    description: str = Field(description="Risk description")
-    severity: str = Field(description="Severity level (low, medium, high, critical)")
-    probability: str = Field(description="Probability (low, medium, high)")
-    mitigation: str = Field(description="Mitigation strategy")
+    category: str = Field(default="", description="Risk category (market, operational, financial, etc.)")
+    description: str = Field(default="", description="Risk description")
+    severity: str = Field(default="medium", description="Severity level (low, medium, high, critical)")
+    probability: str = Field(default="medium", description="Probability (low, medium, high)")
+    mitigation: str = Field(default="", description="Mitigation strategy")
 
 
 class EvaluationScore(BaseModel):
     """Evaluation score for a dimension."""
-    dimension: str = Field(description="Evaluation dimension")
-    score: float = Field(ge=0.0, le=10.0, description="Score (0-10)")
-    weight: float = Field(ge=0.0, le=1.0, description="Weight in overall score")
-    justification: str = Field(description="Justification for score")
+    dimension: str = Field(default="", description="Evaluation dimension")
+    score: float = Field(ge=0.0, le=10.0, default=5.0, description="Score (0-10)")
+    weight: float = Field(ge=0.0, le=1.0, default=0.1, description="Weight in overall score")
+    justification: str = Field(default="", description="Justification for score")
 
 
 class BusinessAnalysis(BaseModel):
     """Business analysis output from Analysis Agent."""
-    executive_summary: str = Field(description="Executive summary of analysis")
-    evaluation_scores: List[EvaluationScore] = Field(description="Scores across dimensions")
-    overall_score: float = Field(ge=0.0, le=10.0, description="Weighted overall score")
-    unit_economics_assessment: str = Field(description="Unit economics viability assessment")
-    key_assumptions: List[str] = Field(description="Key assumptions identified")
-    risks: List[RiskItem] = Field(description="Identified risks")
-    recommendations: List[str] = Field(description="Strategic recommendations")
+    executive_summary: str = Field(default="", description="Executive summary of analysis")
+    evaluation_scores: List[EvaluationScore] = Field(default_factory=list, description="Scores across dimensions")
+    overall_score: float = Field(ge=0.0, le=10.0, default=5.0, description="Weighted overall score")
+    unit_economics_assessment: str = Field(default="", description="Unit economics viability assessment")
+    key_assumptions: List[str] = Field(default_factory=list, description="Key assumptions identified")
+    risks: List[RiskItem] = Field(default_factory=list, description="Identified risks")
+    recommendations: List[str] = Field(default_factory=list, description="Strategic recommendations")
     confidence_score: float = Field(ge=0.0, le=100.0, default=70.0)
 
 
@@ -169,17 +169,17 @@ class BusinessAnalysis(BaseModel):
 
 class ScenarioProjection(BaseModel):
     """Financial projection for a scenario."""
-    scenario_name: str = Field(description="Scenario name (optimistic, base, pessimistic)")
-    assumptions: Dict[str, Any] = Field(description="Key assumptions")
-    year1_revenue: float
-    year2_revenue: float
-    year3_revenue: float
-    year1_costs: float
-    year2_costs: float
-    year3_costs: float
-    year1_profit: float
-    year2_profit: float
-    year3_profit: float
+    scenario_name: str = Field(default="base", description="Scenario name (optimistic, base, pessimistic)")
+    assumptions: Dict[str, Any] = Field(default_factory=dict, description="Key assumptions")
+    year1_revenue: float = 0.0
+    year2_revenue: float = 0.0
+    year3_revenue: float = 0.0
+    year1_costs: float = 0.0
+    year2_costs: float = 0.0
+    year3_costs: float = 0.0
+    year1_profit: float = 0.0
+    year2_profit: float = 0.0
+    year3_profit: float = 0.0
 
 
 class UnitEconomics(BaseModel):
@@ -194,9 +194,9 @@ class UnitEconomics(BaseModel):
 
 class FinancialModel(BaseModel):
     """Financial model output from Financial Modeling Agent."""
-    scenarios: List[ScenarioProjection] = Field(description="Scenario projections")
-    unit_economics: UnitEconomics = Field(description="Unit economics calculations")
-    key_drivers: Dict[str, Any] = Field(description="Key financial drivers")
+    scenarios: List[ScenarioProjection] = Field(default_factory=list, description="Scenario projections")
+    unit_economics: UnitEconomics = Field(default_factory=UnitEconomics, description="Unit economics calculations")
+    key_drivers: Dict[str, Any] = Field(default_factory=dict, description="Key financial drivers")
     sensitivity_analysis: Dict[str, Any] = Field(
         default_factory=dict,
         description="Sensitivity analysis results"
@@ -209,19 +209,19 @@ class FinancialModel(BaseModel):
 
 class ValidationIssue(BaseModel):
     """Validation issue found."""
-    severity: str = Field(description="Issue severity (info, warning, error, critical)")
-    category: str = Field(description="Issue category")
-    description: str = Field(description="Issue description")
-    location: str = Field(description="Where the issue was found")
-    recommendation: str = Field(description="Recommendation to address")
+    severity: str = Field(default="info", description="Issue severity (info, warning, error, critical)")
+    category: str = Field(default="", description="Issue category")
+    description: str = Field(default="", description="Issue description")
+    location: str = Field(default="", description="Where the issue was found")
+    recommendation: str = Field(default="", description="Recommendation to address")
 
 
 class ValidationReport(BaseModel):
     """Validation report from Validation Agent."""
-    overall_status: str = Field(description="Overall validation status (passed, warning, failed)")
-    confidence_score: float = Field(ge=0.0, le=100.0, description="Overall confidence score")
+    overall_status: str = Field(default="passed", description="Overall validation status (passed, warning, failed)")
+    confidence_score: float = Field(ge=0.0, le=100.0, default=70.0, description="Overall confidence score")
     issues: List[ValidationIssue] = Field(default_factory=list, description="Issues found")
-    checks_performed: List[str] = Field(description="List of validation checks performed")
+    checks_performed: List[str] = Field(default_factory=list, description="List of validation checks performed")
     requires_human_review: bool = Field(default=False, description="Whether human review needed")
     human_review_reason: Optional[str] = Field(None, description="Reason for human review")
     validated_sections: Dict[str, float] = Field(
@@ -234,22 +234,22 @@ class ValidationReport(BaseModel):
 
 class FinalReport(BaseModel):
     """Final report from Synthesis Agent."""
-    submission_id: str
+    submission_id: str = ""
     generated_at: datetime = Field(default_factory=datetime.utcnow)
-    executive_summary: str = Field(description="Executive summary")
-    recommendation: str = Field(description="Overall recommendation")
-    overall_score: float = Field(ge=0.0, le=10.0, description="Overall score")
+    executive_summary: str = Field(default="", description="Executive summary")
+    recommendation: str = Field(default="", description="Overall recommendation")
+    overall_score: float = Field(ge=0.0, le=10.0, default=5.0, description="Overall score")
 
     # Detailed sections
-    market_analysis: str = Field(description="Market analysis section")
-    business_evaluation: str = Field(description="Business evaluation section")
-    financial_analysis: str = Field(description="Financial analysis section")
-    risk_assessment: str = Field(description="Risk assessment section")
+    market_analysis: str = Field(default="", description="Market analysis section")
+    business_evaluation: str = Field(default="", description="Business evaluation section")
+    financial_analysis: str = Field(default="", description="Financial analysis section")
+    risk_assessment: str = Field(default="", description="Risk assessment section")
 
     # Supporting data
-    key_findings: List[str] = Field(description="Key findings")
-    critical_assumptions: List[str] = Field(description="Critical assumptions")
-    next_steps: List[str] = Field(description="Recommended next steps")
+    key_findings: List[str] = Field(default_factory=list, description="Key findings")
+    critical_assumptions: List[str] = Field(default_factory=list, description="Critical assumptions")
+    next_steps: List[str] = Field(default_factory=list, description="Recommended next steps")
 
     # Attachments
     report_pdf_path: Optional[str] = Field(None, description="Path to PDF report")

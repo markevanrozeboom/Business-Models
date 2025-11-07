@@ -187,7 +187,7 @@ Target Customer: {submission.value_proposition.target_customer}
 Differentiators: {', '.join(submission.value_proposition.differentiators)}
 
 Market Segments: {', '.join(submission.market.target_segments)}
-Market Size (TAM): ${submission.market.tam:,.0f if submission.market.tam else 'Not provided'}
+Market Size (TAM): {'$' + f'{submission.market.tam:,.0f}' if submission.market.tam else 'Not provided'}
 
 Revenue Model: {submission.business_model.revenue_model}
 Pricing: {submission.business_model.pricing}
@@ -200,12 +200,12 @@ Current Metrics: {submission.team.current_metrics}
 Milestones: {', '.join(submission.team.milestones) if submission.team.milestones else 'None'}
 
 Financial Projections:
-- Year 1 Revenue: ${submission.financials.year1_revenue:,.0f if submission.financials.year1_revenue else 'Not provided'}
-- Year 2 Revenue: ${submission.financials.year2_revenue:,.0f if submission.financials.year2_revenue else 'Not provided'}
-- Year 3 Revenue: ${submission.financials.year3_revenue:,.0f if submission.financials.year3_revenue else 'Not provided'}
-- Gross Margin: {submission.financials.gross_margin if submission.financials.gross_margin else 'Not provided'}%
-- Funding Needed: ${submission.financials.funding_needed:,.0f if submission.financials.funding_needed else 'Not provided'}
-- Burn Rate: ${submission.financials.burn_rate:,.0f if submission.financials.burn_rate else 'Not provided'}/month
+- Year 1 Revenue: {'$' + f'{submission.financials.year1_revenue:,.0f}' if submission.financials.year1_revenue else 'Not provided'}
+- Year 2 Revenue: {'$' + f'{submission.financials.year2_revenue:,.0f}' if submission.financials.year2_revenue else 'Not provided'}
+- Year 3 Revenue: {'$' + f'{submission.financials.year3_revenue:,.0f}' if submission.financials.year3_revenue else 'Not provided'}
+- Gross Margin: {f'{submission.financials.gross_margin}%' if submission.financials.gross_margin else 'Not provided'}
+- Funding Needed: {'$' + f'{submission.financials.funding_needed:,.0f}' if submission.financials.funding_needed else 'Not provided'}
+- Burn Rate: {'$' + f'{submission.financials.burn_rate:,.0f}' if submission.financials.burn_rate else 'Not provided'} /month
 """
 
         if market_research:
