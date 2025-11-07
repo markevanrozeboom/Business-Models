@@ -1,8 +1,9 @@
 """Pydantic models for data validation and serialization."""
 
+import json
 from datetime import datetime
 from enum import Enum
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Union
 from pydantic import BaseModel, Field, field_validator
 
 
@@ -132,6 +133,136 @@ class MarketResearch(BaseModel):
     threats: List[str] = Field(default_factory=list)
     sources: List[str] = Field(default_factory=list, description="Research sources")
     confidence_score: float = Field(ge=0.0, le=100.0, default=70.0)
+
+    @field_validator('market_overview', mode='before')
+    @classmethod
+    def normalize_market_overview(cls, v: Any) -> str:
+        """Convert dict to string if needed."""
+        if isinstance(v, dict):
+            # Try to extract description field, otherwise convert to readable format
+            if 'description' in v:
+                return str(v['description'])
+            # Convert dict to formatted string
+            parts = []
+            for key, value in v.items():
+                if isinstance(value, (str, int, float)):
+                    parts.append(f"{key}: {value}")
+                elif isinstance(value, list):
+                    parts.append(f"{key}: {', '.join(str(item) for item in value[:3])}")
+            return " | ".join(parts) if parts else json.dumps(v, indent=2)
+        return str(v) if v is not None else ""
+
+    @field_validator('market_size_validation', mode='before')
+    @classmethod
+    def normalize_market_size_validation(cls, v: Any) -> str:
+        """Convert dict to string if needed."""
+        if isinstance(v, dict):
+            if 'description' in v:
+                return str(v['description'])
+            if 'claimed_size' in v:
+                return f"Claimed size: {v.get('claimed_size', 'N/A')}. {v.get('validation', '')}"
+            return json.dumps(v, indent=2)
+        return str(v) if v is not None else ""
+
+    @field_validator('competitive_landscape', mode='before')
+    @classmethod
+    def normalize_competitive_landscape(cls, v: Any) -> str:
+        """Convert dict to string if needed."""
+        if isinstance(v, dict):
+            if 'description' in v:
+                return str(v['description'])
+            if 'direct_competitors' in v:
+                competitors = v.get('direct_competitors', [])
+                comp_list = ', '.join([c.get('name', str(c)) if isinstance(c, dict) else str(c) for c in competitors[:5]])
+                return f"Direct competitors: {comp_list}. {v.get('analysis', '')}"
+            return json.dumps(v, indent=2)
+        return str(v) if v is not None else ""
+
+    @field_validator('opportunities', mode='before')
+    @classmethod
+    def normalize_opportunities(cls, v: Any) -> List[str]:
+        """Convert list of dicts to list of strings if needed."""
+        if not v:
+            return []
+        if isinstance(v, list):
+            result = []
+            for item in v:
+                if isinstance(item, dict):
+                    # Extract title and description if available
+                    title = item.get('title', '')
+                    desc = item.get('description', '')
+                    timeframe = item.get('timeframe', '')
+                    if title:
+                        opp_str = title
+                        if desc:
+                            opp_str += f": {desc}"
+                        if timeframe:
+                            opp_str += f" (Timeframe: {timeframe})"
+                        result.append(opp_str)
+                    else:
+                        # Fallback: convert dict to readable string
+                        result.append(json.dumps(item, indent=2))
+                else:
+                    result.append(str(item))
+            return result
+        return [str(v)]
+
+    @field_validator('threats', mode='before')
+    @classmethod
+    def normalize_threats(cls, v: Any) -> List[str]:
+        """Convert list of dicts to list of strings if needed."""
+        if not v:
+            return []
+        if isinstance(v, list):
+            result = []
+            for item in v:
+                if isinstance(item, dict):
+                    # Extract title and description if available
+                    title = item.get('title', '')
+                    desc = item.get('description', '')
+                    severity = item.get('severity', '')
+                    if title:
+                        threat_str = title
+                        if desc:
+                            threat_str += f": {desc}"
+                        if severity:
+                            threat_str += f" (Severity: {severity})"
+                        result.append(threat_str)
+                    else:
+                        # Fallback: convert dict to readable string
+                        result.append(json.dumps(item, indent=2))
+                else:
+                    result.append(str(item))
+            return result
+        return [str(v)]
+
+    @field_validator('sources', mode='before')
+    @classmethod
+    def normalize_sources(cls, v: Any) -> List[str]:
+        """Convert list of dicts to list of strings if needed."""
+        if not v:
+            return []
+        if isinstance(v, list):
+            result = []
+            for item in v:
+                if isinstance(item, dict):
+                    # Extract title and url if available
+                    title = item.get('title', '')
+                    url = item.get('url', '')
+                    if title:
+                        source_str = title
+                        if url:
+                            source_str += f" ({url})"
+                        result.append(source_str)
+                    elif url:
+                        result.append(url)
+                    else:
+                        # Fallback: convert dict to readable string
+                        result.append(json.dumps(item, indent=2))
+                else:
+                    result.append(str(item))
+            return result
+        return [str(v)]
 
 
 # === Analysis Agent Output ===

@@ -253,9 +253,9 @@ Please conduct thorough market research covering:
 
 Provide your research as a JSON object matching this structure:
 {{
-  "market_overview": "Detailed market analysis...",
-  "market_size_validation": "Validation of market size claims or estimates...",
-  "competitive_landscape": "Competitive analysis...",
+  "market_overview": "Detailed market analysis as a STRING (not an object)...",
+  "market_size_validation": "Validation of market size claims as a STRING...",
+  "competitive_landscape": "Competitive analysis as a STRING...",
   "industry_benchmarks": {{
     "avg_cac": 100,
     "avg_ltv": 500,
@@ -271,12 +271,14 @@ Provide your research as a JSON object matching this structure:
       "sources": ["url1", "url2"]
     }}
   ],
-  "opportunities": ["Opportunity 1", "Opportunity 2"],
-  "threats": ["Threat 1", "Threat 2"],
-  "sources": ["All sources used"],
+  "opportunities": ["Opportunity 1 as a string", "Opportunity 2 as a string"],
+  "threats": ["Threat 1 as a string", "Threat 2 as a string"],
+  "sources": ["Source 1 (url or description)", "Source 2 (url or description)"],
   "confidence_score": 75
 }}
 
+CRITICAL: All text fields (market_overview, market_size_validation, competitive_landscape) must be STRINGS, not objects.
+Opportunities, threats, and sources must be arrays of STRINGS, not arrays of objects.
 Be thorough and cite all sources. Use industry knowledge to fill gaps when information is missing."""
 
     def _create_market_research(self, data: Dict[str, Any]) -> MarketResearch:
