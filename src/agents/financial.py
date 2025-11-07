@@ -2,7 +2,7 @@
 
 import os
 from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
 import pandas as pd
 from openpyxl import Workbook
@@ -176,24 +176,46 @@ Be realistic and conservative in assumptions. Use industry benchmarks when speci
                 # Create FinancialModel object
                 financial_model = self._create_financial_model(structured_data)
 
+                # Validate financial metrics for reasonableness
+                validation_warnings = self._validate_financial_metrics(financial_model)
+                
+                if validation_warnings:
+                    self.logger.warning(
+                        "financial_metrics_validation_warnings",
+                        warnings=validation_warnings,
+                    )
+
                 # Generate Excel spreadsheet
-                spreadsheet_path = self._generate_spreadsheet(
-                    submission, financial_model
-                )
-                financial_model.spreadsheet_path = spreadsheet_path
+                try:
+                    spreadsheet_path = self._generate_spreadsheet(
+                        submission, financial_model
+                    )
+                    financial_model.spreadsheet_path = spreadsheet_path
+                except Exception as e:
+                    self.logger.warning(
+                        "spreadsheet_generation_failed",
+                        error=str(e),
+                        message="Continuing without spreadsheet",
+                    )
+                    financial_model.spreadsheet_path = None
 
                 self.logger.info(
                     "financial_modeling_completed",
                     num_scenarios=len(financial_model.scenarios),
-                    spreadsheet_path=spreadsheet_path,
+                    spreadsheet_path=financial_model.spreadsheet_path,
                     confidence_score=financial_model.confidence_score,
                 )
+
+                warnings = []
+                if validation_warnings:
+                    warnings.extend(validation_warnings)
 
                 return self.create_response(
                     success=True,
                     message="Financial model created successfully",
                     data=financial_model.model_dump(),
                     confidence_score=financial_model.confidence_score,
+                    warnings=warnings,
                 )
             else:
                 self.logger.warning("financial_json_extraction_failed")
@@ -300,6 +322,86 @@ Output comprehensive financial model as JSON matching FinancialModel schema.
 Be realistic and data-driven. Use industry benchmarks where specific data is lacking."""
 
         return prompt
+
+    def _validate_financial_metrics(self, financial_model: FinancialModel) -> List[str]:
+        """
+        Validate financial metrics against industry benchmarks.
+        
+        Args:
+            financial_model: FinancialModel to validate
+            
+        Returns:
+            List of warning messages for unrealistic metrics
+        """
+        warnings = []
+        ue = financial_model.unit_economics
+        
+        # Validate LTV:CAC ratio
+        if ue.ltv_cac_ratio is not None:
+            if ue.ltv_cac_ratio > 15.0:
+                warnings.append(
+                    f"LTV:CAC ratio of {ue.ltv_cac_ratio:.1f}x is extremely high "
+                    f"(industry standard: 3-5x). This may indicate calculation errors."
+                )
+            elif ue.ltv_cac_ratio < 1.0:
+                warnings.append(
+                    f"LTV:CAC ratio of {ue.ltv_cac_ratio:.1f}x is below 1.0, "
+                    f"indicating unprofitable unit economics."
+                )
+        
+        # Validate payback period
+        if ue.payback_period_months is not None:
+            if ue.payback_period_months < 1.0:
+                warnings.append(
+                    f"Payback period of {ue.payback_period_months:.1f} months is unrealistically short "
+                    f"(typical: 6-18 months)."
+                )
+            elif ue.payback_period_months > 36.0:
+                warnings.append(
+                    f"Payback period of {ue.payback_period_months:.1f} months is very long "
+                    f"(typical: 6-18 months)."
+                )
+        
+        # Validate gross margin
+        if ue.gross_margin is not None:
+            if ue.gross_margin > 95.0:
+                warnings.append(
+                    f"Gross margin of {ue.gross_margin:.1f}% is extremely high "
+                    f"(typical SaaS: 70-85%, services: 40-60%)."
+                )
+            elif ue.gross_margin < 0.0:
+                warnings.append(
+                    f"Gross margin of {ue.gross_margin:.1f}% is negative, "
+                    f"indicating unprofitable business model."
+                )
+        
+        # Validate contribution margin
+        if ue.contribution_margin is not None:
+            if ue.contribution_margin > ue.gross_margin if ue.gross_margin else 100.0:
+                warnings.append(
+                    f"Contribution margin ({ue.contribution_margin:.1f}%) cannot exceed "
+                    f"gross margin ({ue.gross_margin:.1f}% if available)."
+                )
+        
+        # Validate scenario projections
+        for scenario in financial_model.scenarios:
+            # Check revenue growth rates
+            if scenario.year1_revenue > 0 and scenario.year2_revenue > 0:
+                growth_y1_y2 = ((scenario.year2_revenue - scenario.year1_revenue) / scenario.year1_revenue) * 100
+                if growth_y1_y2 > 500.0:
+                    warnings.append(
+                        f"{scenario.scenario_name}: Year 1-2 growth of {growth_y1_y2:.0f}% "
+                        f"is extremely aggressive (typical early-stage: 100-300%)."
+                    )
+            
+            # Check profitability timeline
+            if scenario.year1_profit > 0 and scenario.year1_revenue < 1000000:
+                warnings.append(
+                    f"{scenario.scenario_name}: Profitable in Year 1 with revenue < $1M "
+                    f"is unusual for early-stage companies."
+                )
+        
+        return warnings
 
     def _create_financial_model(self, data: Dict[str, Any]) -> FinancialModel:
         """Create FinancialModel object from structured data."""

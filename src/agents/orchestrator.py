@@ -2,7 +2,7 @@
 
 import asyncio
 from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
 from .base import BaseAgent
 from .intake import IntakeAgent
@@ -153,8 +153,26 @@ class OrchestratorAgent:
             # Always try to create BusinessSubmission if response is successful
             if response.success and response.data:
                 try:
-                    from ..models.schemas import BusinessSubmission
-                    workflow_state.business_submission = BusinessSubmission(**response.data)
+                    from ..models.schemas import BusinessSubmission, BusinessOverview, ValueProposition, MarketInfo, BusinessModelInfo, FinancialProjections, TeamInfo
+                    
+                    # Try to create with provided data, using defaults for missing fields
+                    data = response.data.copy() if isinstance(response.data, dict) else {}
+                    
+                    # Ensure all nested objects have defaults
+                    if "overview" not in data:
+                        data["overview"] = {}
+                    if "value_proposition" not in data:
+                        data["value_proposition"] = {}
+                    if "market" not in data:
+                        data["market"] = {}
+                    if "business_model" not in data:
+                        data["business_model"] = {}
+                    if "financials" not in data:
+                        data["financials"] = {}
+                    if "team" not in data:
+                        data["team"] = {}
+                    
+                    workflow_state.business_submission = BusinessSubmission(**data)
 
                     # Log completeness score
                     completeness = workflow_state.business_submission.completeness_score
@@ -184,7 +202,32 @@ class OrchestratorAgent:
                         error=str(e),
                         response_data_keys=list(response.data.keys()) if isinstance(response.data, dict) else None,
                     )
-                    workflow_state.error_message = f"Failed to create BusinessSubmission: {str(e)}"
+                    # Try to create minimal submission as fallback
+                    try:
+                        from ..models.schemas import BusinessSubmission, BusinessOverview, ValueProposition, MarketInfo, BusinessModelInfo, FinancialProjections, TeamInfo
+                        import uuid
+                        
+                        minimal_submission = BusinessSubmission(
+                            submission_id=str(uuid.uuid4()),
+                            overview=BusinessOverview(),
+                            value_proposition=ValueProposition(),
+                            market=MarketInfo(),
+                            business_model=BusinessModelInfo(),
+                            financials=FinancialProjections(),
+                            team=TeamInfo(),
+                            completeness_score=10.0,
+                        )
+                        workflow_state.business_submission = minimal_submission
+                        self.logger.warning(
+                            "intake_fallback_created",
+                            message="Created minimal submission as fallback",
+                        )
+                    except Exception as fallback_error:
+                        self.logger.error(
+                            "intake_fallback_failed",
+                            error=str(fallback_error),
+                        )
+                        workflow_state.error_message = f"Failed to create BusinessSubmission: {str(e)}"
             else:
                 self.logger.error(
                     "intake_failed",
@@ -225,37 +268,101 @@ class OrchestratorAgent:
 
             loop.close()
 
-            # Process research results
+            # Process research results with quality gate
             if research_response.success and research_response.data:
                 from ..models.schemas import MarketResearch
-                workflow_state.market_research = MarketResearch(**research_response.data)
+                try:
+                    market_research = MarketResearch(**research_response.data)
+                    
+                    # Quality gate: Check if output meets minimum standards
+                    quality_check = self._check_output_quality(
+                        market_research.model_dump(),
+                        phase="research",
+                        min_confidence=50.0,  # Minimum confidence threshold
+                        required_fields=["market_overview", "competitive_landscape"],
+                        min_required_fields=1,  # At least 1 of 2 required
+                    )
+                    
+                    if quality_check["passed"]:
+                        workflow_state.market_research = market_research
+                        self._record_phase_completion(
+                            workflow_state,
+                            WorkflowPhase.RESEARCH,
+                            research_response.confidence_score,
+                        )
+                        self.logger.info(
+                            "phase_completed",
+                            phase=WorkflowPhase.RESEARCH.value,
+                            confidence=research_response.confidence_score,
+                        )
+                    else:
+                        # Soft failure - log warning but continue
+                        self.logger.warning(
+                            "research_quality_gate_failed",
+                            reasons=quality_check["reasons"],
+                            confidence=research_response.confidence_score,
+                            message="Continuing with low-quality research output",
+                        )
+                        workflow_state.market_research = market_research  # Still use it
+                        self._record_phase_completion(
+                            workflow_state,
+                            WorkflowPhase.RESEARCH,
+                            research_response.confidence_score,
+                        )
+                except Exception as e:
+                    self.logger.error(
+                        "research_creation_failed",
+                        error=str(e),
+                    )
+                    # Continue without research
 
-                self._record_phase_completion(
-                    workflow_state,
-                    WorkflowPhase.RESEARCH,
-                    research_response.confidence_score,
-                )
-
-                self.logger.info(
-                    "phase_completed",
-                    phase=WorkflowPhase.RESEARCH.value,
-                )
-
-            # Process analysis results
+            # Process analysis results with quality gate
             if analysis_response.success and analysis_response.data:
                 from ..models.schemas import BusinessAnalysis
-                workflow_state.business_analysis = BusinessAnalysis(**analysis_response.data)
-
-                self._record_phase_completion(
-                    workflow_state,
-                    WorkflowPhase.ANALYSIS,
-                    analysis_response.confidence_score,
-                )
-
-                self.logger.info(
-                    "phase_completed",
-                    phase=WorkflowPhase.ANALYSIS.value,
-                )
+                try:
+                    business_analysis = BusinessAnalysis(**analysis_response.data)
+                    
+                    # Quality gate: Check if output meets minimum standards
+                    quality_check = self._check_output_quality(
+                        business_analysis.model_dump(),
+                        phase="analysis",
+                        min_confidence=50.0,
+                        required_fields=["executive_summary", "evaluation_scores", "risks"],
+                        min_required_fields=2,  # At least 2 of 3 required
+                    )
+                    
+                    if quality_check["passed"]:
+                        workflow_state.business_analysis = business_analysis
+                        self._record_phase_completion(
+                            workflow_state,
+                            WorkflowPhase.ANALYSIS,
+                            analysis_response.confidence_score,
+                        )
+                        self.logger.info(
+                            "phase_completed",
+                            phase=WorkflowPhase.ANALYSIS.value,
+                            confidence=analysis_response.confidence_score,
+                        )
+                    else:
+                        # Soft failure - log warning but continue
+                        self.logger.warning(
+                            "analysis_quality_gate_failed",
+                            reasons=quality_check["reasons"],
+                            confidence=analysis_response.confidence_score,
+                            message="Continuing with low-quality analysis output",
+                        )
+                        workflow_state.business_analysis = business_analysis  # Still use it
+                        self._record_phase_completion(
+                            workflow_state,
+                            WorkflowPhase.ANALYSIS,
+                            analysis_response.confidence_score,
+                        )
+                except Exception as e:
+                    self.logger.error(
+                        "analysis_creation_failed",
+                        error=str(e),
+                    )
+                    # Continue without analysis
 
             return workflow_state
 
@@ -321,18 +428,56 @@ class OrchestratorAgent:
 
             if response.success and response.data:
                 from ..models.schemas import FinancialModel
-                workflow_state.financial_model = FinancialModel(**response.data)
-
-                self._record_phase_completion(
-                    workflow_state,
-                    WorkflowPhase.FINANCIAL_MODELING,
-                    response.confidence_score,
-                )
-
-                self.logger.info(
-                    "phase_completed",
-                    phase=WorkflowPhase.FINANCIAL_MODELING.value,
-                )
+                try:
+                    financial_model = FinancialModel(**response.data)
+                    
+                    # Quality gate: Check if output meets minimum standards
+                    quality_check = self._check_output_quality(
+                        financial_model.model_dump(),
+                        phase="financial",
+                        min_confidence=50.0,
+                        required_fields=["scenarios", "unit_economics"],
+                        min_required_fields=1,  # At least 1 of 2 required
+                    )
+                    
+                    # Also check for validation warnings from financial agent
+                    has_warnings = len(response.warnings) > 0
+                    
+                    if quality_check["passed"] and not has_warnings:
+                        workflow_state.financial_model = financial_model
+                        self._record_phase_completion(
+                            workflow_state,
+                            WorkflowPhase.FINANCIAL_MODELING,
+                            response.confidence_score,
+                        )
+                        self.logger.info(
+                            "phase_completed",
+                            phase=WorkflowPhase.FINANCIAL_MODELING.value,
+                            confidence=response.confidence_score,
+                        )
+                    else:
+                        # Soft failure - log warning but continue
+                        reasons = quality_check.get("reasons", [])
+                        if has_warnings:
+                            reasons.extend(response.warnings)
+                        self.logger.warning(
+                            "financial_quality_gate_failed",
+                            reasons=reasons,
+                            confidence=response.confidence_score,
+                            message="Continuing with financial model (may have validation warnings)",
+                        )
+                        workflow_state.financial_model = financial_model  # Still use it
+                        self._record_phase_completion(
+                            workflow_state,
+                            WorkflowPhase.FINANCIAL_MODELING,
+                            response.confidence_score,
+                        )
+                except Exception as e:
+                    self.logger.error(
+                        "financial_creation_failed",
+                        error=str(e),
+                    )
+                    # Continue without financial model
 
             return workflow_state
 
@@ -451,6 +596,71 @@ class OrchestratorAgent:
             self.logger.error("synthesis_phase_failed", error=str(e))
             workflow_state.error_message = f"Synthesis phase failed: {str(e)}"
             return workflow_state
+
+    def _check_output_quality(
+        self,
+        data: Dict[str, Any],
+        phase: str,
+        min_confidence: float = 50.0,
+        required_fields: Optional[List[str]] = None,
+        min_required_fields: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """
+        Check if agent output meets quality standards.
+        
+        Args:
+            data: Output data to validate
+            phase: Phase name for logging
+            min_confidence: Minimum confidence score threshold
+            required_fields: List of required field paths
+            min_required_fields: Minimum number of required fields that must be populated
+            
+        Returns:
+            Dict with 'passed' (bool) and 'reasons' (list of strings)
+        """
+        reasons = []
+        
+        # Check confidence score if present
+        if "confidence_score" in data:
+            confidence = data.get("confidence_score", 0.0)
+            if confidence < min_confidence:
+                reasons.append(f"Confidence score {confidence:.1f}% below minimum {min_confidence:.1f}%")
+        
+        # Check required fields if specified
+        if required_fields:
+            missing = []
+            for field in required_fields:
+                parts = field.split(".")
+                value = data
+                for part in parts:
+                    if isinstance(value, dict):
+                        value = value.get(part)
+                    else:
+                        value = None
+                        break
+                
+                is_empty = (
+                    value is None or
+                    value == "" or
+                    (isinstance(value, list) and len(value) == 0) or
+                    (isinstance(value, dict) and len(value) == 0)
+                )
+                
+                if is_empty:
+                    missing.append(field)
+            
+            if min_required_fields is not None:
+                if len(missing) > (len(required_fields) - min_required_fields):
+                    reasons.append(f"Too many missing fields: {missing}")
+            elif len(missing) > 0:
+                reasons.append(f"Missing required fields: {missing}")
+        
+        passed = len(reasons) == 0
+        
+        return {
+            "passed": passed,
+            "reasons": reasons,
+        }
 
     def _record_phase_completion(
         self,
