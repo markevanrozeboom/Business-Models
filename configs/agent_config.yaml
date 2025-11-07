@@ -1,0 +1,88 @@
+# Agent Configuration for Business Evaluation System
+
+# Orchestrator Agent
+orchestrator:
+  name: "Orchestrator"
+  description: "Manages overall workflow and coordinates specialized agents"
+
+# Intake Agent
+intake:
+  name: "Intake Agent"
+  description: "Conducts structured information gathering"
+  model: "claude-sonnet-4-5-20250929"
+  max_tokens: 4096
+  temperature: 0.7
+  completeness_threshold: 80  # Minimum completeness score to proceed
+
+# Research Agent
+research:
+  name: "Research Agent"
+  description: "Conducts market analysis and competitive intelligence"
+  model: "claude-sonnet-4-5-20250929"
+  max_tokens: 8000
+  temperature: 0.5
+  min_comparable_companies: 5
+  max_comparable_companies: 10
+
+# Analysis Agent
+analysis:
+  name: "Analysis Agent"
+  description: "Evaluates business model viability using VC/PE frameworks"
+  model: "claude-sonnet-4-5-20250929"
+  max_tokens: 8000
+  temperature: 0.3
+  evaluation_dimensions:
+    - name: "Team Quality"
+      weight: 0.20
+    - name: "Market Opportunity"
+      weight: 0.25
+    - name: "Product/Solution"
+      weight: 0.20
+    - name: "Business Model"
+      weight: 0.15
+    - name: "Competitive Position"
+      weight: 0.10
+    - name: "Traction/Validation"
+      weight: 0.10
+
+# Financial Modeling Agent
+financial:
+  name: "Financial Agent"
+  description: "Builds financial projections and unit economics models"
+  model: "claude-sonnet-4-5-20250929"
+  max_tokens: 8000
+  temperature: 0.2
+  scenarios:
+    - "Optimistic"
+    - "Base"
+    - "Pessimistic"
+  projection_years: 3
+
+# Validation Agent
+validation:
+  name: "Validation Agent"
+  description: "Cross-checks outputs and ensures quality"
+  model: "claude-sonnet-4-5-20250929"
+  max_tokens: 6000
+  temperature: 0.2
+  confidence_threshold: 70  # Below this triggers human review
+  validation_checks:
+    - "Financial consistency"
+    - "Data quality"
+    - "Reasonableness tests"
+    - "Cross-referencing"
+
+# Synthesis Agent
+synthesis:
+  name: "Synthesis Agent"
+  description: "Aggregates findings into final report"
+  model: "claude-sonnet-4-5-20250929"
+  max_tokens: 8000
+  temperature: 0.5
+  report_sections:
+    - "Executive Summary"
+    - "Market Analysis"
+    - "Business Evaluation"
+    - "Financial Analysis"
+    - "Risk Assessment"
+    - "Recommendations"

@@ -1,0 +1,35 @@
+We are building "CloudSync Pro" - a B2B SaaS platform that helps mid-market companies synchronize their data across multiple cloud applications in real-time.
+
+Problem: Mid-market companies (100-1000 employees) use 10-20 different cloud applications (Salesforce, Slack, Google Workspace, etc.) but struggle with data inconsistency, manual data entry, and integration complexity. Existing solutions like Zapier are too technical and limited, while enterprise iPaaS solutions are too expensive and complex.
+
+Solution: CloudSync Pro provides a no-code visual interface for setting up real-time data synchronization with pre-built templates for common workflows. Our key innovation is intelligent conflict resolution using ML to automatically handle data discrepancies.
+
+Market: We're targeting the 250,000 mid-market companies in North America initially. TAM is $15B (mid-market software integration spend), SAM is $3B (companies with 100-1000 employees), SOM is $150M (early adopters in tech, finance, healthcare sectors).
+
+Business Model:
+- Pricing: $500/month base + $50 per integration
+- Target: 50 customers by end of Year 1, 300 by Year 2, 1000 by Year 3
+- Gross margin: 85% (typical SaaS)
+- Primary channel: Direct sales + partner network
+
+Team:
+- 4 co-founders with complementary skills
+- CEO: 10 years enterprise software sales at Salesforce
+- CTO: Former senior engineer at MuleSoft (acquired by Salesforce for $6.5B)
+- CPO: Product manager at Workato (integration platform)
+- Head of Engineering: Led engineering at Series B startup
+
+Traction:
+- MVP completed 3 months ago
+- 5 beta customers providing feedback
+- 2 LOIs signed for paid pilot programs
+- $50K MRR pipeline
+
+Financials:
+- Year 1 Revenue: $300K (50 customers × $500/mo × 12 months)
+- Year 2 Revenue: $1.8M (300 customers)
+- Year 3 Revenue: $6M (1000 customers)
+- Current burn: $100K/month
+- Seeking: $2M seed round for 18-month runway
+
+Competition: Zapier (300M+ users but limited features), Workato (enterprise focus), Tray.io (expensive), Celigo (Oracle-focused). We differentiate through: (1) Mid-market focus, (2) Intelligent conflict resolution, (3) Pre-built templates, (4) Simple pricing.
