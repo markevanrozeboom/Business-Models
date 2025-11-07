@@ -38,6 +38,13 @@ Your role is to:
 5. Flag risks across categories (market, operational, financial, strategic)
 6. Provide actionable recommendations
 
+IMPORTANT: The business submission may have incomplete or missing information. Your job is to:
+- Work with whatever information is available
+- Make reasonable inferences based on the business description
+- Use industry knowledge to assess viability even with partial data
+- Clearly note when information is missing and how that affects your assessment
+- Be creative in evaluating the opportunity based on what's provided
+
 Evaluation Dimensions (with weights):
 1. **Team Quality (20%)**: Founder experience, domain expertise, execution capability
 2. **Market Opportunity (25%)**: Market size, growth rate, accessibility
@@ -52,6 +59,12 @@ Scoring Guidelines:
 - 5-6: Adequate - significant work needed
 - 3-4: Weak - major concerns
 - 0-2: Critical issues - not viable as-is
+
+When information is missing:
+- Use industry standards and comparable companies to make reasonable assessments
+- Note uncertainty in justifications
+- Adjust confidence scores based on data completeness
+- Don't penalize heavily for missing information - focus on what's available
 
 Risk Categories:
 - **Market Risk**: Market size, adoption rate, competition
@@ -84,7 +97,7 @@ Provide analysis as JSON matching the BusinessAnalysis schema:
   "confidence_score": 80
 }}
 
-Be rigorous, objective, and analytical. Base scores on evidence, not optimism."""
+Be rigorous, objective, and analytical. Base scores on evidence when available, and use industry knowledge to fill gaps when information is missing."""
 
     def process(self, input_data: Dict[str, Any]) -> AgentResponse:
         """
@@ -171,33 +184,40 @@ Be rigorous, objective, and analytical. Base scores on evidence, not optimism.""
         market_research: MarketResearch = None,
     ) -> str:
         """Build analysis prompt from inputs."""
+        # Helper to format optional fields
+        def fmt_field(value, default="Not provided"):
+            return value if value else default
+        
+        def fmt_list(value_list, default="None"):
+            return ', '.join(value_list) if value_list else default
+        
         prompt = f"""Conduct comprehensive business analysis for the following opportunity:
 
 **BUSINESS SUBMISSION**
 
-Business: {submission.overview.name}
-Industry: {submission.overview.industry}
-Stage: {submission.overview.stage}
+Business: {fmt_field(submission.overview.name)}
+Industry: {fmt_field(submission.overview.industry)}
+Stage: {fmt_field(submission.overview.stage)}
 
-Problem: {submission.overview.problem}
-Solution: {submission.overview.solution}
+Problem: {fmt_field(submission.overview.problem)}
+Solution: {fmt_field(submission.overview.solution)}
 
-Value Proposition: {submission.value_proposition.unique_value}
-Target Customer: {submission.value_proposition.target_customer}
-Differentiators: {', '.join(submission.value_proposition.differentiators)}
+Value Proposition: {fmt_field(submission.value_proposition.unique_value)}
+Target Customer: {fmt_field(submission.value_proposition.target_customer)}
+Differentiators: {fmt_list(submission.value_proposition.differentiators)}
 
-Market Segments: {', '.join(submission.market.target_segments)}
+Market Segments: {fmt_list(submission.market.target_segments)}
 Market Size (TAM): {'$' + f'{submission.market.tam:,.0f}' if submission.market.tam else 'Not provided'}
 
-Revenue Model: {submission.business_model.revenue_model}
-Pricing: {submission.business_model.pricing}
-Cost Structure: {submission.business_model.cost_structure}
+Revenue Model: {fmt_field(submission.business_model.revenue_model)}
+Pricing: {fmt_field(submission.business_model.pricing)}
+Cost Structure: {fmt_field(submission.business_model.cost_structure)}
 
 Team Size: {submission.team.team_size}
-Key Roles: {', '.join(submission.team.key_roles)}
-Experience: {submission.team.relevant_experience}
-Current Metrics: {submission.team.current_metrics}
-Milestones: {', '.join(submission.team.milestones) if submission.team.milestones else 'None'}
+Key Roles: {fmt_list(submission.team.key_roles)}
+Experience: {fmt_field(submission.team.relevant_experience)}
+Current Metrics: {submission.team.current_metrics if submission.team.current_metrics else 'None'}
+Milestones: {fmt_list(submission.team.milestones)}
 
 Financial Projections:
 - Year 1 Revenue: {'$' + f'{submission.financials.year1_revenue:,.0f}' if submission.financials.year1_revenue else 'Not provided'}
@@ -206,6 +226,12 @@ Financial Projections:
 - Gross Margin: {f'{submission.financials.gross_margin}%' if submission.financials.gross_margin else 'Not provided'}
 - Funding Needed: {'$' + f'{submission.financials.funding_needed:,.0f}' if submission.financials.funding_needed else 'Not provided'}
 - Burn Rate: {'$' + f'{submission.financials.burn_rate:,.0f}' if submission.financials.burn_rate else 'Not provided'} /month
+
+NOTE: Some information may be missing or incomplete. Use your industry knowledge and analytical frameworks to:
+- Make reasonable assessments even with partial data
+- Use comparable companies and industry standards to fill gaps
+- Clearly note uncertainty in your analysis
+- Focus on evaluating what's available rather than penalizing what's missing
 """
 
         if market_research:

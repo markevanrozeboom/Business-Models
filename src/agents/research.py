@@ -36,6 +36,12 @@ Your role is to:
 5. Identify key opportunities and threats
 6. Provide sources for all claims and data
 
+IMPORTANT: The business submission may have incomplete or missing information. Your job is to:
+- Work with whatever information is available
+- Infer reasonable assumptions when data is missing (and clearly state these assumptions)
+- Use industry knowledge to fill gaps where appropriate
+- Be creative and resourceful - don't let missing data stop you from providing valuable research
+
 Research Areas:
 - Market Overview: Size, growth rate, key trends, regulatory environment
 - Competitive Landscape: Direct/indirect competitors, market positioning
@@ -51,11 +57,12 @@ Important Guidelines:
 - Flag when information is limited or unavailable
 - Focus on recent data (last 2-3 years preferred)
 - Consider geographic market differences
+- When business details are missing, use industry standards and comparable companies to infer likely characteristics
 
 Output Format:
 Provide your research as a structured JSON object matching the MarketResearch schema, including:
 - market_overview: Comprehensive market analysis
-- market_size_validation: Validation of claimed market size
+- market_size_validation: Validation of claimed market size (or estimate if not provided)
 - competitive_landscape: Analysis of competitive dynamics
 - industry_benchmarks: Key metrics with sources
 - comparable_companies: 5-10 companies with detailed metrics
@@ -64,7 +71,7 @@ Provide your research as a structured JSON object matching the MarketResearch sc
 - sources: All sources used
 - confidence_score: Your confidence in the research (0-100)
 
-Be thorough and analytical. If you cannot find specific information, state that clearly rather than making assumptions."""
+Be thorough and analytical. If you cannot find specific information, state that clearly and use industry knowledge to provide reasonable estimates."""
 
     def process(self, input_data: Dict[str, Any]) -> AgentResponse:
         """
@@ -141,34 +148,47 @@ Be thorough and analytical. If you cannot find specific information, state that 
 
     def _build_research_prompt(self, submission: BusinessSubmission) -> str:
         """Build research prompt from business submission."""
+        # Helper to format optional fields
+        def fmt_field(value, default="Not provided"):
+            return value if value else default
+        
+        def fmt_list(value_list, default="Not specified"):
+            return ', '.join(value_list) if value_list else default
+        
         return f"""Conduct comprehensive market research for the following business:
 
 **Business Overview:**
-- Name: {submission.overview.name}
-- Industry: {submission.overview.industry}
-- Stage: {submission.overview.stage}
-- Problem: {submission.overview.problem}
-- Solution: {submission.overview.solution}
+- Name: {fmt_field(submission.overview.name)}
+- Industry: {fmt_field(submission.overview.industry)}
+- Stage: {fmt_field(submission.overview.stage)}
+- Problem: {fmt_field(submission.overview.problem)}
+- Solution: {fmt_field(submission.overview.solution)}
 
 **Value Proposition:**
-- Unique Value: {submission.value_proposition.unique_value}
-- Target Customer: {submission.value_proposition.target_customer}
-- Differentiators: {', '.join(submission.value_proposition.differentiators)}
+- Unique Value: {fmt_field(submission.value_proposition.unique_value)}
+- Target Customer: {fmt_field(submission.value_proposition.target_customer)}
+- Differentiators: {fmt_list(submission.value_proposition.differentiators)}
 
 **Market Information:**
-- Target Segments: {', '.join(submission.market.target_segments)}
-- Market Size: {submission.market.market_size or 'Not provided'}
+- Target Segments: {fmt_list(submission.market.target_segments)}
+- Market Size: {fmt_field(submission.market.market_size)}
 - TAM: {'$' + f'{submission.market.tam:,.0f}' if submission.market.tam else 'Not provided'}
 - SAM: {'$' + f'{submission.market.sam:,.0f}' if submission.market.sam else 'Not provided'}
-- Geography: {', '.join(submission.market.geography) if submission.market.geography else 'Not specified'}
+- Geography: {fmt_list(submission.market.geography)}
 
 **Business Model:**
-- Revenue Model: {submission.business_model.revenue_model}
-- Pricing: {submission.business_model.pricing}
-- Channels: {', '.join(submission.business_model.distribution_channels)}
+- Revenue Model: {fmt_field(submission.business_model.revenue_model)}
+- Pricing: {fmt_field(submission.business_model.pricing)}
+- Channels: {fmt_list(submission.business_model.distribution_channels)}
+
+NOTE: Some information may be missing or incomplete. Use your industry knowledge to:
+- Infer reasonable market characteristics based on the business description
+- Research comparable companies even if specific details are missing
+- Provide industry benchmarks that would apply to this type of business
+- Make educated estimates where appropriate (and clearly label them as estimates)
 
 Please conduct thorough market research covering:
-1. Market size validation and growth trends
+1. Market size validation and growth trends (estimate if not provided)
 2. Competitive landscape analysis
 3. 5-10 comparable companies with metrics
 4. Industry benchmarks (CAC, LTV, margins, growth rates, etc.)
@@ -177,7 +197,7 @@ Please conduct thorough market research covering:
 Provide your research as a JSON object matching this structure:
 {{
   "market_overview": "Detailed market analysis...",
-  "market_size_validation": "Validation of market size claims...",
+  "market_size_validation": "Validation of market size claims or estimates...",
   "competitive_landscape": "Competitive analysis...",
   "industry_benchmarks": {{
     "avg_cac": 100,
@@ -200,7 +220,7 @@ Provide your research as a JSON object matching this structure:
   "confidence_score": 75
 }}
 
-Be thorough and cite all sources."""
+Be thorough and cite all sources. Use industry knowledge to fill gaps when information is missing."""
 
     def _create_market_research(self, data: Dict[str, Any]) -> MarketResearch:
         """Create MarketResearch object from structured data."""

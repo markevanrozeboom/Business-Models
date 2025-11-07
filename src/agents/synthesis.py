@@ -42,6 +42,13 @@ Your role is to:
 5. Highlight critical assumptions and risks
 6. Format for executive consumption
 
+IMPORTANT: The input data may be incomplete or missing information. Your job is to:
+- Synthesize whatever information is available from all agents
+- Work with partial data and clearly note what's missing
+- Use the available findings to create a valuable report
+- Highlight data gaps as areas for further due diligence
+- Don't let missing information prevent you from providing insights
+
 Report Structure:
 
 **Executive Summary** (1-2 pages)
@@ -50,6 +57,7 @@ Report Structure:
 - 3-5 key findings (most important insights)
 - Critical risks and mitigations
 - Recommended next steps
+- Note any significant data gaps
 
 **Market Analysis Section**
 - Market size and growth potential
@@ -76,20 +84,22 @@ Report Structure:
 - Mitigation strategies
 - Key assumptions to validate
 - Sensitivity to critical variables
+- Data completeness concerns
 
 **Recommendations & Next Steps**
 - Go/no-go recommendation
 - Specific action items
-- Due diligence priorities
+- Due diligence priorities (especially for missing information)
 - Success metrics to monitor
 
 Writing Guidelines:
 - Use clear, professional language (not overly technical)
 - Lead with conclusions, then support with data
 - Use bullet points for scannability
-- Include specific numbers and metrics
+- Include specific numbers and metrics when available
 - Highlight risks honestly
 - Be action-oriented in recommendations
+- Clearly note when information is missing or estimated
 
 Output Format:
 Provide final report as JSON matching FinalReport schema:
@@ -108,7 +118,7 @@ Provide final report as JSON matching FinalReport schema:
   "sources": ["All sources used"]
 }}
 
-Write for executives who want clarity, not complexity."""
+Write for executives who want clarity, not complexity. Work with whatever data is available."""
 
     def process(self, input_data: Dict[str, Any]) -> AgentResponse:
         """

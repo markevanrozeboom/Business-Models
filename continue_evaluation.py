@@ -32,25 +32,45 @@ def continue_evaluation(workflow_file: str):
     
     # Override human review requirement
     workflow_state.requires_human_review = False
-    workflow_state.current_phase = WorkflowPhase.RESEARCH
     workflow_state.updated_at = datetime.utcnow()
     
     # Initialize orchestrator
     orchestrator = OrchestratorAgent()
     
-    # Continue from research phase
+    # Determine what phases are already complete
+    has_research = workflow_state.market_research is not None
+    has_analysis = workflow_state.business_analysis is not None
+    has_financial = workflow_state.financial_model is not None
+    has_validation = workflow_state.validation_report is not None
+    
+    logger.info(
+        "phase_status",
+        has_research=has_research,
+        has_analysis=has_analysis,
+        has_financial=has_financial,
+        has_validation=has_validation,
+    )
+    
+    # Continue from where we left off
     try:
-        # Phase 2: Research & Analysis (parallel)
-        workflow_state = orchestrator._execute_research_and_analysis_phase(workflow_state)
+        # Phase 2: Research & Analysis (only if missing)
+        if not has_research or not has_analysis:
+            logger.info("running_research_and_analysis")
+            workflow_state = orchestrator._execute_research_and_analysis_phase(workflow_state)
         
-        # Phase 3: Financial Modeling
-        workflow_state = orchestrator._execute_financial_modeling_phase(workflow_state)
+        # Phase 3: Financial Modeling (only if missing)
+        if not has_financial:
+            logger.info("running_financial_modeling")
+            workflow_state = orchestrator._execute_financial_modeling_phase(workflow_state)
         
-        # Phase 4: Validation (skip human review this time)
-        workflow_state = orchestrator._execute_validation_phase(workflow_state)
-        workflow_state.requires_human_review = False  # Override again if needed
+        # Phase 4: Validation (only if missing)
+        if not has_validation:
+            logger.info("running_validation")
+            workflow_state = orchestrator._execute_validation_phase(workflow_state)
+            workflow_state.requires_human_review = False  # Override
         
-        # Phase 5: Synthesis
+        # Phase 5: Synthesis (always run this to generate final report)
+        logger.info("running_synthesis")
         workflow_state = orchestrator._execute_synthesis_phase(workflow_state)
         
         # Mark as completed
@@ -59,7 +79,24 @@ def continue_evaluation(workflow_file: str):
         workflow_state.updated_at = datetime.utcnow()
         
         # Save final state
-        orchestrator._save_workflow_state(workflow_state)
+        import os
+        from src.utils.config import settings
+        
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"workflow_{workflow_state.submission_id}_{timestamp}.json"
+        filepath = os.path.join(settings.output_dir, filename)
+        
+        # Convert to dict for JSON serialization
+        state_dict = workflow_state.model_dump()
+        
+        with open(filepath, "w") as f:
+            json.dump(state_dict, f, indent=2, default=str)
+        
+        logger.info(
+            "workflow_state_saved",
+            filepath=filepath,
+            submission_id=workflow_state.submission_id,
+        )
         
         duration = (workflow_state.updated_at - workflow_state.started_at).total_seconds()
         

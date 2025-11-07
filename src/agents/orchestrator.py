@@ -150,27 +150,49 @@ class OrchestratorAgent:
                 "initial_submission": initial_submission
             })
 
-            if response.success and response.data and "completeness_score" in str(response.data):
-                from ..models.schemas import BusinessSubmission
-                workflow_state.business_submission = BusinessSubmission(**response.data)
+            # Always try to create BusinessSubmission if response is successful
+            if response.success and response.data:
+                try:
+                    from ..models.schemas import BusinessSubmission
+                    workflow_state.business_submission = BusinessSubmission(**response.data)
 
-                self._record_phase_completion(
-                    workflow_state,
-                    WorkflowPhase.INTAKE,
-                    response.confidence_score,
-                )
+                    # Log completeness score
+                    completeness = workflow_state.business_submission.completeness_score
+                    
+                    self._record_phase_completion(
+                        workflow_state,
+                        WorkflowPhase.INTAKE,
+                        response.confidence_score,
+                    )
 
-                self.logger.info(
-                    "phase_completed",
-                    phase=WorkflowPhase.INTAKE.value,
-                    completeness_score=workflow_state.business_submission.completeness_score,
-                )
+                    if completeness < 30.0:
+                        self.logger.warning(
+                            "intake_low_completeness",
+                            phase=WorkflowPhase.INTAKE.value,
+                            completeness_score=completeness,
+                            message="Proceeding with low completeness - downstream agents will fill gaps",
+                        )
+                    else:
+                        self.logger.info(
+                            "phase_completed",
+                            phase=WorkflowPhase.INTAKE.value,
+                            completeness_score=completeness,
+                        )
+                except Exception as e:
+                    self.logger.error(
+                        "intake_submission_creation_failed",
+                        error=str(e),
+                        response_data_keys=list(response.data.keys()) if isinstance(response.data, dict) else None,
+                    )
+                    workflow_state.error_message = f"Failed to create BusinessSubmission: {str(e)}"
             else:
-                self.logger.warning(
-                    "intake_incomplete",
+                self.logger.error(
+                    "intake_failed",
+                    success=response.success,
                     message=response.message,
+                    errors=response.errors,
                 )
-                # In production, this would handle iterative conversation
+                workflow_state.error_message = f"Intake phase failed: {response.message}"
 
             return workflow_state
 

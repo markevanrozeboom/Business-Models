@@ -34,57 +34,69 @@ class IntakeAgent(BaseAgent):
     def get_system_prompt(self) -> str:
         return """You are an expert business analyst extracting structured information from business descriptions.
 
-Extract ALL available information and structure it as JSON. Use null or empty strings for missing data.
+Your goal is to extract whatever information is present in the description and structure it as JSON. 
+Partial data is completely acceptable - use null, empty strings, or empty arrays for missing fields.
 
-Required JSON structure:
+IMPORTANT: 
+- Extract only what is explicitly stated or can be reasonably inferred
+- Do NOT require all fields to be filled
+- Use defaults (null, empty strings, empty arrays) for any missing information
+- Even if only basic information (name, problem, solution) is provided, that's sufficient
+- Calculate completeness score based on what's available, not what's missing
+
+JSON structure (all fields optional, use defaults for missing):
 ```json
 {
   "overview": {
-    "name": "Business Name",
-    "industry": "Industry",
-    "stage": "idea/MVP/early-stage/growth",
-    "problem": "Problem description",
-    "solution": "Solution description"
+    "name": "Business Name or empty string",
+    "industry": "Industry or empty string",
+    "stage": "idea/MVP/early-stage/growth or empty string",
+    "problem": "Problem description or empty string",
+    "solution": "Solution description or empty string"
   },
   "value_proposition": {
-    "unique_value": "Value prop",
-    "differentiators": ["diff1", "diff2"],
-    "target_customer": "Customer description"
+    "unique_value": "Value prop or empty string",
+    "differentiators": ["diff1", "diff2"] or [],
+    "target_customer": "Customer description or empty string"
   },
   "market": {
-    "target_segments": ["segment1"],
-    "market_size": "Description",
-    "tam": 1000000,
-    "sam": 500000,
-    "som": 100000,
-    "geography": ["location1"]
+    "target_segments": ["segment1"] or [],
+    "market_size": "Description or null",
+    "tam": 1000000 or null,
+    "sam": 500000 or null,
+    "som": 100000 or null,
+    "geography": ["location1"] or []
   },
   "business_model": {
-    "revenue_model": "subscription/transaction/etc",
-    "pricing": "Pricing details",
-    "cost_structure": "Cost structure",
-    "distribution_channels": ["channel1"]
+    "revenue_model": "subscription/transaction/etc or empty string",
+    "pricing": "Pricing details or empty string",
+    "cost_structure": "Cost structure or empty string",
+    "distribution_channels": ["channel1"] or []
   },
   "financials": {
-    "year1_revenue": 100000,
-    "year2_revenue": 500000,
-    "year3_revenue": 1000000,
-    "gross_margin": 70.0,
-    "funding_needed": 500000,
-    "burn_rate": 50000
+    "year1_revenue": 100000 or null,
+    "year2_revenue": 500000 or null,
+    "year3_revenue": 1000000 or null,
+    "gross_margin": 70.0 or null,
+    "funding_needed": 500000 or null,
+    "burn_rate": 50000 or null
   },
   "team": {
-    "team_size": 3,
-    "key_roles": ["CEO", "CTO"],
-    "experience": ["experience details"],
-    "milestones": ["milestone1"]
+    "team_size": 3 or 0,
+    "key_roles": ["CEO", "CTO"] or [],
+    "relevant_experience": "experience details or empty string",
+    "milestones": ["milestone1"] or []
   },
   "additional_info": {},
-  "completeness_score": 75.0
+  "completeness_score": 30.0
 }
 ```
 
-Scoring: Rate 0-100 based on information depth. Output JSON only - no explanations."""
+Completeness Scoring: 
+- Score 0-100 based on information depth
+- Even 20-30% completeness is acceptable if core info (name, problem, solution) exists
+- Be generous - partial information is valuable
+- Output JSON only - no explanations."""
 
     def process(self, input_data: Dict[str, Any]) -> AgentResponse:
         """
@@ -113,9 +125,22 @@ Scoring: Rate 0-100 based on information depth. Output JSON only - no explanatio
             # Try to extract structured JSON
             structured_data = self._extract_json_from_response(response_text)
 
-            if structured_data and "completeness_score" in structured_data:
-                # We have a complete submission
+            if structured_data:
+                # Create submission even if completeness is low
+                # If completeness_score not provided, calculate it or use a default
+                if "completeness_score" not in structured_data:
+                    # Try to create a temporary submission to calculate completeness
+                    try:
+                        temp_submission = self._create_business_submission(structured_data)
+                        structured_data["completeness_score"] = self.calculate_completeness(temp_submission)
+                    except Exception:
+                        # If we can't create submission yet, estimate based on available fields
+                        structured_data["completeness_score"] = 25.0  # Default for partial data
+                
                 submission = self._create_business_submission(structured_data)
+                
+                # Recalculate completeness to ensure accuracy
+                submission.completeness_score = self.calculate_completeness(submission)
 
                 self.logger.info(
                     "intake_completed",
@@ -130,13 +155,41 @@ Scoring: Rate 0-100 based on information depth. Output JSON only - no explanatio
                     confidence_score=submission.completeness_score,
                 )
             else:
-                # Still gathering information
-                self.logger.info("intake_in_progress", response_length=len(response_text))
+                # If we can't extract JSON, create a minimal submission from the text
+                self.logger.warning("intake_json_extraction_failed", response_length=len(response_text))
+                
+                # Create minimal submission with just the raw text
+                minimal_data = {
+                    "overview": {
+                        "name": "",
+                        "industry": "",
+                        "stage": "",
+                        "problem": "",
+                        "solution": response_text[:500] if response_text else ""  # Use first 500 chars as solution
+                    },
+                    "value_proposition": {},
+                    "market": {},
+                    "business_model": {},
+                    "financials": {},
+                    "team": {},
+                    "additional_info": {"raw_response": response_text},
+                    "completeness_score": 15.0  # Very low but proceed anyway
+                }
+                
+                submission = self._create_business_submission(minimal_data)
+                submission.completeness_score = self.calculate_completeness(submission)
+
+                self.logger.info(
+                    "intake_minimal_submission_created",
+                    submission_id=submission.submission_id,
+                    completeness_score=submission.completeness_score,
+                )
 
                 return self.create_response(
                     success=True,
-                    message=response_text,
-                    data={"requires_more_info": True, "response": response_text},
+                    message="Business information extracted (minimal data available)",
+                    data=submission.model_dump(),
+                    confidence_score=submission.completeness_score,
                 )
 
         except Exception as e:
@@ -159,7 +212,14 @@ Scoring: Rate 0-100 based on information depth. Output JSON only - no explanatio
 
 {input_data['initial_submission']}
 
-Please extract ALL available information from this description and structure it as JSON according to the BusinessSubmission schema. Use null or "Not provided" for any missing fields. Calculate a completeness score and output the JSON immediately - do not ask follow-up questions."""
+Please extract whatever information is available from this description and structure it as JSON according to the BusinessSubmission schema. 
+
+- Extract only what is explicitly stated or can be reasonably inferred
+- Use null, empty strings, or empty arrays for any missing fields
+- Partial data is completely acceptable - even if only basic information is provided
+- Calculate a completeness score (0-100) based on what's available
+- Be generous with the completeness score - 20-30% is acceptable if core info exists
+- Output the JSON immediately - proceed with whatever information is available"""
             })
 
         elif "conversation_history" in input_data:
@@ -194,6 +254,7 @@ Please extract ALL available information from this description and structure it 
     def calculate_completeness(self, submission: BusinessSubmission) -> float:
         """
         Calculate completeness score for a business submission.
+        More lenient scoring - rewards what's available rather than penalizing what's missing.
 
         Args:
             submission: BusinessSubmission to evaluate
@@ -206,48 +267,120 @@ Please extract ALL available information from this description and structure it 
 
         # Define weights for each section
         weights = {
-            "overview": 20.0,
+            "overview": 25.0,  # Increased weight for core info
             "value_proposition": 15.0,
             "market": 20.0,
             "business_model": 15.0,
-            "financials": 20.0,
+            "financials": 15.0,  # Reduced weight - often missing
             "team": 10.0,
         }
 
-        # Check overview completeness
+        # Check overview completeness - more lenient, partial credit
         overview = submission.overview
-        if all([overview.name, overview.industry, overview.stage, overview.problem, overview.solution]):
-            score += weights["overview"]
+        overview_fields = [
+            bool(overview.name),
+            bool(overview.industry),
+            bool(overview.stage),
+            bool(overview.problem),
+            bool(overview.solution),
+        ]
+        overview_completeness = sum(overview_fields) / len(overview_fields)
+        # Core requirement: at least name, problem, or solution
+        if any([overview.name, overview.problem, overview.solution]):
+            score += weights["overview"] * overview_completeness
         total_weight += weights["overview"]
 
-        # Check value proposition
+        # Check value proposition - partial credit
         vp = submission.value_proposition
-        if all([vp.unique_value, vp.differentiators, vp.target_customer]):
-            score += weights["value_proposition"]
+        vp_fields = [
+            bool(vp.unique_value),
+            bool(vp.differentiators),
+            bool(vp.target_customer),
+        ]
+        vp_completeness = sum(vp_fields) / len(vp_fields) if vp_fields else 0
+        if any([vp.unique_value, vp.differentiators, vp.target_customer]):
+            score += weights["value_proposition"] * vp_completeness
         total_weight += weights["value_proposition"]
 
-        # Check market info
+        # Check market info - partial credit
         market = submission.market
-        if market.target_segments and (market.tam or market.market_size):
-            score += weights["market"]
+        market_has_data = bool(
+            market.target_segments or 
+            market.tam or 
+            market.sam or 
+            market.som or 
+            market.market_size or 
+            market.geography
+        )
+        if market_has_data:
+            # Give partial credit based on what's available
+            market_fields = [
+                bool(market.target_segments),
+                bool(market.tam or market.sam or market.som or market.market_size),
+                bool(market.geography),
+            ]
+            market_completeness = sum(market_fields) / len(market_fields)
+            score += weights["market"] * market_completeness
         total_weight += weights["market"]
 
-        # Check business model
+        # Check business model - partial credit
         bm = submission.business_model
-        if all([bm.revenue_model, bm.pricing, bm.cost_structure]):
-            score += weights["business_model"]
+        bm_fields = [
+            bool(bm.revenue_model),
+            bool(bm.pricing),
+            bool(bm.cost_structure),
+            bool(bm.distribution_channels),
+        ]
+        bm_completeness = sum(bm_fields) / len(bm_fields) if bm_fields else 0
+        if any([bm.revenue_model, bm.pricing, bm.cost_structure, bm.distribution_channels]):
+            score += weights["business_model"] * bm_completeness
         total_weight += weights["business_model"]
 
-        # Check financials
+        # Check financials - very lenient, any financial data counts
         fin = submission.financials
-        if fin.year1_revenue or fin.funding_needed:
-            score += weights["financials"]
+        fin_has_data = bool(
+            fin.year1_revenue or 
+            fin.year2_revenue or 
+            fin.year3_revenue or 
+            fin.gross_margin or 
+            fin.funding_needed or 
+            fin.burn_rate
+        )
+        if fin_has_data:
+            # Give partial credit for any financial data
+            fin_fields = [
+                bool(fin.year1_revenue or fin.year2_revenue or fin.year3_revenue),
+                bool(fin.gross_margin),
+                bool(fin.funding_needed),
+                bool(fin.burn_rate),
+            ]
+            fin_completeness = sum(fin_fields) / len(fin_fields)
+            score += weights["financials"] * fin_completeness
         total_weight += weights["financials"]
 
-        # Check team
+        # Check team - very lenient
         team = submission.team
-        if team.team_size > 0 and team.key_roles:
-            score += weights["team"]
+        team_has_data = bool(
+            team.team_size > 0 or 
+            team.key_roles or 
+            team.relevant_experience or 
+            team.milestones
+        )
+        if team_has_data:
+            team_fields = [
+                bool(team.team_size > 0),
+                bool(team.key_roles),
+                bool(team.relevant_experience),
+                bool(team.milestones),
+            ]
+            team_completeness = sum(team_fields) / len(team_fields)
+            score += weights["team"] * team_completeness
         total_weight += weights["team"]
 
-        return (score / total_weight) * 100 if total_weight > 0 else 0.0
+        final_score = (score / total_weight) * 100 if total_weight > 0 else 0.0
+        
+        # Ensure minimum score if core info exists (name, problem, or solution)
+        if any([overview.name, overview.problem, overview.solution]):
+            final_score = max(final_score, 20.0)  # Minimum 20% if core info exists
+        
+        return final_score

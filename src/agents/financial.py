@@ -45,17 +45,26 @@ Your role is to:
 4. Identify key financial drivers
 5. Perform sensitivity analysis on critical assumptions
 
+IMPORTANT: The business submission may have incomplete financial information. Your job is to:
+- Work with whatever financial data is available
+- Use industry benchmarks and comparable companies to estimate missing values
+- Make reasonable assumptions based on the business model and stage
+- Clearly document all assumptions and estimates
+- Build a model even if only basic information (revenue model, pricing) is provided
+
 Financial Model Components:
 
 **Revenue Model:**
 - Driver-based (units × price, or usage-based)
 - Consider seasonality, churn, expansion revenue
 - Apply realistic growth rates based on stage and market
+- If revenue projections are missing, estimate based on business model and industry standards
 
 **Cost Model:**
 - COGS (variable costs)
 - Fixed operating expenses (personnel, marketing, G&A, R&D)
 - Scale COGS with revenue, step-function for fixed costs
+- If cost structure is missing, use industry benchmarks for similar businesses
 
 **Unit Economics:**
 - CAC (Customer Acquisition Cost): Marketing & sales / new customers
@@ -63,6 +72,7 @@ Financial Model Components:
 - LTV:CAC Ratio: Should be > 3x for healthy business
 - Payback Period: CAC / monthly profit per customer (ideally < 12 months)
 - Contribution Margin: (Revenue - variable costs) / Revenue
+- If unit economics can't be calculated, estimate based on industry benchmarks
 
 **Scenario Analysis:**
 - Optimistic: Better-than-expected growth, lower costs (70% probability adjusted)
@@ -116,7 +126,7 @@ Provide financial model as JSON matching the FinancialModel schema:
   "confidence_score": 75
 }}
 
-Be realistic and conservative in assumptions. Flag where data is limited."""
+Be realistic and conservative in assumptions. Use industry benchmarks when specific data is missing. Clearly note estimates vs. provided data."""
 
     def process(self, input_data: Dict[str, Any]) -> AgentResponse:
         """
@@ -209,17 +219,21 @@ Be realistic and conservative in assumptions. Flag where data is limited."""
         market_research: Optional[MarketResearch] = None,
     ) -> str:
         """Build financial modeling prompt."""
+        # Helper to format optional fields
+        def fmt_field(value, default="Not provided"):
+            return value if value else default
+        
         prompt = f"""Build a comprehensive 3-year financial model for:
 
 **BUSINESS DETAILS**
 
-Name: {submission.overview.name}
-Industry: {submission.overview.industry}
-Stage: {submission.overview.stage}
+Name: {fmt_field(submission.overview.name)}
+Industry: {fmt_field(submission.overview.industry)}
+Stage: {fmt_field(submission.overview.stage)}
 
-Revenue Model: {submission.business_model.revenue_model}
-Pricing: {submission.business_model.pricing}
-Cost Structure: {submission.business_model.cost_structure}
+Revenue Model: {fmt_field(submission.business_model.revenue_model)}
+Pricing: {fmt_field(submission.business_model.pricing)}
+Cost Structure: {fmt_field(submission.business_model.cost_structure)}
 
 Current Financial Inputs:
 - Year 1 Revenue Target: {'$' + f'{submission.financials.year1_revenue:,.0f}' if submission.financials.year1_revenue else 'Not provided'}
@@ -228,6 +242,12 @@ Current Financial Inputs:
 - Gross Margin: {f'{submission.financials.gross_margin}%' if submission.financials.gross_margin else 'Not provided'}
 - Monthly Burn Rate: {'$' + f'{submission.financials.burn_rate:,.0f}' if submission.financials.burn_rate else 'Not provided'}
 - Funding Needed: {'$' + f'{submission.financials.funding_needed:,.0f}' if submission.financials.funding_needed else 'Not provided'}
+
+NOTE: Some financial information may be missing. Use industry benchmarks and comparable companies to:
+- Estimate revenue projections if not provided
+- Infer cost structure based on business model and industry standards
+- Calculate unit economics using industry averages when specific data is unavailable
+- Make reasonable assumptions and clearly document them
 """
 
         if market_research and market_research.industry_benchmarks:
