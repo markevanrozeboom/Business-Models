@@ -32,32 +32,59 @@ class IntakeAgent(BaseAgent):
         )
 
     def get_system_prompt(self) -> str:
-        return """You are an expert business analyst conducting a structured interview to gather comprehensive information about a business idea or existing business.
+        return """You are an expert business analyst extracting structured information from business descriptions.
 
-Your role is to:
-1. Ask clear, focused questions to gather all necessary business information
-2. Use a conversational yet professional tone
-3. Probe for details when responses are vague
-4. Validate that information is complete and consistent
-5. Calculate a completeness score (0-100%) based on quality and depth of information
+Extract ALL available information and structure it as JSON. Use null or empty strings for missing data.
 
-Information to gather:
-- Business Overview: name, industry, stage, problem, solution
-- Value Proposition: unique value, differentiators, target customer
-- Market & Customers: target segments, market size (TAM/SAM/SOM), geography
-- Business Model: revenue model, pricing, cost structure, channels
-- Financial Projections: revenue forecasts, margins, funding needs, burn rate
-- Team & Traction: team size, key roles, experience, current metrics, milestones
+Required JSON structure:
+```json
+{
+  "overview": {
+    "name": "Business Name",
+    "industry": "Industry",
+    "stage": "idea/MVP/early-stage/growth",
+    "problem": "Problem description",
+    "solution": "Solution description"
+  },
+  "value_proposition": {
+    "unique_value": "Value prop",
+    "differentiators": ["diff1", "diff2"],
+    "target_customer": "Customer description"
+  },
+  "market": {
+    "target_segments": ["segment1"],
+    "market_size": "Description",
+    "tam": 1000000,
+    "sam": 500000,
+    "som": 100000,
+    "geography": ["location1"]
+  },
+  "business_model": {
+    "revenue_model": "subscription/transaction/etc",
+    "pricing": "Pricing details",
+    "cost_structure": "Cost structure",
+    "distribution_channels": ["channel1"]
+  },
+  "financials": {
+    "year1_revenue": 100000,
+    "year2_revenue": 500000,
+    "year3_revenue": 1000000,
+    "gross_margin": 70.0,
+    "funding_needed": 500000,
+    "burn_rate": 50000
+  },
+  "team": {
+    "team_size": 3,
+    "key_roles": ["CEO", "CTO"],
+    "experience": ["experience details"],
+    "milestones": ["milestone1"]
+  },
+  "additional_info": {},
+  "completeness_score": 75.0
+}
+```
 
-Completeness Scoring Guidelines:
-- 90-100%: Comprehensive information with specific numbers and details
-- 80-89%: Good information, minor gaps acceptable
-- 70-79%: Adequate but missing some important details
-- Below 70%: Insufficient information, requires follow-up
-
-Always output your final assessment as a JSON object with all gathered information structured according to the BusinessSubmission schema.
-
-Be adaptive: if the user provides information in free-form text, extract and organize it. If information is missing, ask targeted follow-up questions."""
+Scoring: Rate 0-100 based on information depth. Output JSON only - no explanations."""
 
     def process(self, input_data: Dict[str, Any]) -> AgentResponse:
         """
@@ -128,11 +155,11 @@ Be adaptive: if the user provides information in free-form text, extract and org
             # First interaction
             messages.append({
                 "role": "user",
-                "content": f"""I have a business idea I'd like you to evaluate. Here's an initial description:
+                "content": f"""I have a business idea I'd like you to evaluate. Here's the business description:
 
 {input_data['initial_submission']}
 
-Please conduct a structured interview to gather all necessary information. Ask me questions to fill in any gaps, and when you have sufficient information, provide a JSON output with all the details structured according to the BusinessSubmission schema."""
+Please extract ALL available information from this description and structure it as JSON according to the BusinessSubmission schema. Use null or "Not provided" for any missing fields. Calculate a completeness score and output the JSON immediately - do not ask follow-up questions."""
             })
 
         elif "conversation_history" in input_data:

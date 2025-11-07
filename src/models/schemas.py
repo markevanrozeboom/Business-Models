@@ -33,23 +33,23 @@ class AgentType(str, Enum):
 
 class BusinessOverview(BaseModel):
     """Business overview information."""
-    name: str = Field(description="Business name")
-    industry: str = Field(description="Industry/sector")
-    stage: str = Field(description="Business stage (idea, MVP, early-stage, growth)")
-    problem: str = Field(description="Problem being solved")
-    solution: str = Field(description="Proposed solution")
+    name: str = Field(default="", description="Business name")
+    industry: str = Field(default="", description="Industry/sector")
+    stage: str = Field(default="", description="Business stage (idea, MVP, early-stage, growth)")
+    problem: str = Field(default="", description="Problem being solved")
+    solution: str = Field(default="", description="Proposed solution")
 
 
 class ValueProposition(BaseModel):
     """Value proposition details."""
-    unique_value: str = Field(description="Unique value proposition")
-    differentiators: List[str] = Field(description="Key differentiators from competitors")
-    target_customer: str = Field(description="Target customer description")
+    unique_value: str = Field(default="", description="Unique value proposition")
+    differentiators: List[str] = Field(default_factory=list, description="Key differentiators from competitors")
+    target_customer: str = Field(default="", description="Target customer description")
 
 
 class MarketInfo(BaseModel):
     """Market and customer information."""
-    target_segments: List[str] = Field(description="Target market segments")
+    target_segments: List[str] = Field(default_factory=list, description="Target market segments")
     market_size: Optional[str] = Field(None, description="Market size description")
     tam: Optional[float] = Field(None, description="Total Addressable Market (TAM) in $")
     sam: Optional[float] = Field(None, description="Serviceable Addressable Market (SAM) in $")
@@ -59,10 +59,10 @@ class MarketInfo(BaseModel):
 
 class BusinessModelInfo(BaseModel):
     """Business model details."""
-    revenue_model: str = Field(description="Revenue model (subscription, transaction, etc.)")
-    pricing: str = Field(description="Pricing structure")
-    cost_structure: str = Field(description="Key cost drivers")
-    distribution_channels: List[str] = Field(description="Distribution channels")
+    revenue_model: str = Field(default="", description="Revenue model (subscription, transaction, etc.)")
+    pricing: str = Field(default="", description="Pricing structure")
+    cost_structure: str = Field(default="", description="Key cost drivers")
+    distribution_channels: List[str] = Field(default_factory=list, description="Distribution channels")
 
 
 class FinancialProjections(BaseModel):
@@ -77,9 +77,9 @@ class FinancialProjections(BaseModel):
 
 class TeamInfo(BaseModel):
     """Team composition and traction."""
-    team_size: int = Field(description="Current team size")
-    key_roles: List[str] = Field(description="Key team roles filled")
-    relevant_experience: str = Field(description="Team's relevant experience")
+    team_size: Optional[int] = Field(default=0, description="Current team size")
+    key_roles: List[str] = Field(default_factory=list, description="Key team roles filled")
+    relevant_experience: str = Field(default="", description="Team's relevant experience")
     current_metrics: Dict[str, Any] = Field(
         default_factory=dict,
         description="Current traction metrics"
