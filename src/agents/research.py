@@ -158,8 +158,8 @@ Be thorough and analytical. If you cannot find specific information, state that 
 **Market Information:**
 - Target Segments: {', '.join(submission.market.target_segments)}
 - Market Size: {submission.market.market_size or 'Not provided'}
-- TAM: ${submission.market.tam:,.0f} if submission.market.tam else 'Not provided'}
-- SAM: ${submission.market.sam:,.0f} if submission.market.sam else 'Not provided'}
+- TAM: ${submission.market.tam:,.0f if submission.market.tam else 'Not provided'}
+- SAM: ${submission.market.sam:,.0f if submission.market.sam else 'Not provided'}
 - Geography: {', '.join(submission.market.geography) if submission.market.geography else 'Not specified'}
 
 **Business Model:**

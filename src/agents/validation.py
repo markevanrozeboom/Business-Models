@@ -289,11 +289,11 @@ Confidence Score: {financial_model.confidence_score}%
 Number of Scenarios: {len(financial_model.scenarios)}
 
 Unit Economics:
-- CAC: ${financial_model.unit_economics.cac} if financial_model.unit_economics.cac else 'N/A'}
-- LTV: ${financial_model.unit_economics.ltv} if financial_model.unit_economics.ltv else 'N/A'}
-- LTV:CAC: {financial_model.unit_economics.ltv_cac_ratio}x if financial_model.unit_economics.ltv_cac_ratio else 'N/A'}
-- Payback: {financial_model.unit_economics.payback_period_months} months if financial_model.unit_economics.payback_period_months else 'N/A'}
-- Gross Margin: {financial_model.unit_economics.gross_margin}% if financial_model.unit_economics.gross_margin else 'N/A'}
+- CAC: ${financial_model.unit_economics.cac if financial_model.unit_economics.cac else 'N/A'}
+- LTV: ${financial_model.unit_economics.ltv if financial_model.unit_economics.ltv else 'N/A'}
+- LTV:CAC: {financial_model.unit_economics.ltv_cac_ratio if financial_model.unit_economics.ltv_cac_ratio else 'N/A'}x
+- Payback: {financial_model.unit_economics.payback_period_months if financial_model.unit_economics.payback_period_months else 'N/A'} months
+- Gross Margin: {financial_model.unit_economics.gross_margin if financial_model.unit_economics.gross_margin else 'N/A'}%
 
 """
 
