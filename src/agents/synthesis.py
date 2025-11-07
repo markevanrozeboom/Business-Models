@@ -16,6 +16,7 @@ from ..models.schemas import (
     FinalReport,
 )
 from ..utils.config import settings
+from ..utils.pdf_generator import generate_pdf_report
 
 
 class SynthesisAgent(BaseAgent):
@@ -201,6 +202,23 @@ Write for executives who want clarity, not complexity. Work with whatever data i
                     financial_model,
                     validation_report,
                 )
+
+                # Generate PDF report
+                try:
+                    pdf_path = generate_pdf_report(final_report)
+                    final_report.report_pdf_path = pdf_path
+                    self.logger.info(
+                        "pdf_report_generated",
+                        pdf_path=pdf_path,
+                        submission_id=final_report.submission_id,
+                    )
+                except Exception as e:
+                    self.logger.warning(
+                        "pdf_generation_failed",
+                        error=str(e),
+                        submission_id=final_report.submission_id,
+                    )
+                    # Continue without PDF - not critical
 
                 self.logger.info(
                     "synthesis_completed",

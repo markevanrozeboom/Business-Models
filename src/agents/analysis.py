@@ -140,35 +140,93 @@ Be rigorous, objective, and analytical. Base scores on evidence when available, 
 
             response_text = response.content[0].text
 
-            # Extract structured data
+            # Extract structured data with improved extraction
             structured_data = self._extract_json_from_response(response_text)
 
-            if structured_data:
-                # Create BusinessAnalysis object
-                analysis = self._create_business_analysis(structured_data)
+            # Retry with refined prompt if extraction fails or output is incomplete
+            max_retries = 2
+            for attempt in range(max_retries + 1):
+                if attempt > 0:
+                    # Refine prompt for retry
+                    retry_prompt = f"""The previous response did not contain complete structured data.
+Please provide a complete JSON response with all required fields populated:
+- executive_summary (detailed summary)
+- evaluation_scores (list with at least 4-6 dimensions)
+- overall_score (calculated from evaluation_scores)
+- unit_economics_assessment (detailed assessment)
+- key_assumptions (list)
+- risks (list with at least 3-5 risks)
+- recommendations (list)
 
-                self.logger.info(
-                    "analysis_completed",
-                    overall_score=analysis.overall_score,
-                    num_risks=len(analysis.risks),
-                    confidence_score=analysis.confidence_score,
-                )
+Original response: {response_text[:500]}...
 
-                return self.create_response(
-                    success=True,
-                    message="Business analysis completed successfully",
-                    data=analysis.model_dump(),
-                    confidence_score=analysis.confidence_score,
-                )
-            else:
-                self.logger.warning("analysis_json_extraction_failed")
+Please provide the complete JSON now."""
+                    
+                    retry_response = self._create_message(
+                        messages=[{"role": "user", "content": retry_prompt}],
+                        retry=False,
+                    )
+                    response_text = retry_response.content[0].text
+                    structured_data = self._extract_json_from_response(response_text)
 
-                return self.create_response(
-                    success=True,
-                    message="Analysis completed but structured data extraction failed",
-                    data={"raw_analysis": response_text},
-                    warnings=["Could not extract structured JSON from analysis"],
-                )
+                if structured_data:
+                    # Validate output completeness
+                    required_fields = [
+                        "executive_summary",
+                        "evaluation_scores",
+                        "risks",
+                    ]
+                    is_valid, missing = self._validate_output_completeness(
+                        structured_data,
+                        required_fields,
+                        min_required=2,  # At least 2 of 3 required
+                    )
+                    
+                    if is_valid or attempt == max_retries:
+                        # Create BusinessAnalysis object
+                        analysis = self._create_business_analysis(structured_data)
+                        
+                        if not is_valid:
+                            self.logger.warning(
+                                "analysis_incomplete_output",
+                                missing_fields=missing,
+                                attempt=attempt + 1,
+                            )
+
+                        self.logger.info(
+                            "analysis_completed",
+                            overall_score=analysis.overall_score,
+                            num_risks=len(analysis.risks),
+                            confidence_score=analysis.confidence_score,
+                        )
+
+                        warnings = []
+                        if not is_valid:
+                            warnings.append(f"Incomplete output: missing {', '.join(missing)}")
+
+                        return self.create_response(
+                            success=True,
+                            message="Business analysis completed successfully",
+                            data=analysis.model_dump(),
+                            confidence_score=analysis.confidence_score,
+                            warnings=warnings,
+                        )
+                elif attempt < max_retries:
+                    self.logger.warning(
+                        "analysis_json_extraction_failed_retrying",
+                        attempt=attempt + 1,
+                    )
+                    continue
+
+            # Final fallback
+            self.logger.warning("analysis_json_extraction_failed_final")
+
+            return self.create_response(
+                success=True,
+                message="Analysis completed but structured data extraction failed",
+                data={"raw_analysis": response_text},
+                warnings=["Could not extract structured JSON from analysis"],
+            )
 
         except Exception as e:
             self.logger.error("analysis_process_failed", error=str(e))

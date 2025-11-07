@@ -108,35 +108,92 @@ Be thorough and analytical. If you cannot find specific information, state that 
 
             response_text = response.content[0].text
 
-            # Extract structured data
+            # Extract structured data with improved extraction
             structured_data = self._extract_json_from_response(response_text)
 
-            if structured_data:
-                # Create MarketResearch object
-                market_research = self._create_market_research(structured_data)
+            # Retry with refined prompt if extraction fails or output is incomplete
+            max_retries = 2
+            for attempt in range(max_retries + 1):
+                if attempt > 0:
+                    # Refine prompt for retry
+                    retry_prompt = f"""The previous response did not contain complete structured data. 
+Please provide a complete JSON response with all required fields populated:
+- market_overview (detailed analysis)
+- market_size_validation (or estimate)
+- competitive_landscape (analysis)
+- comparable_companies (at least 3-5 companies)
+- opportunities (list)
+- threats (list)
+- sources (list of sources)
 
-                self.logger.info(
-                    "research_completed",
-                    num_comparables=len(market_research.comparable_companies),
-                    confidence_score=market_research.confidence_score,
-                )
+Original response: {response_text[:500]}...
 
-                return self.create_response(
-                    success=True,
-                    message="Market research completed successfully",
-                    data=market_research.model_dump(),
-                    confidence_score=market_research.confidence_score,
-                )
-            else:
-                # Return raw research if JSON extraction failed
-                self.logger.warning("research_json_extraction_failed")
+Please provide the complete JSON now."""
+                    
+                    retry_response = self._create_message(
+                        messages=[{"role": "user", "content": retry_prompt}],
+                        retry=False,  # Don't retry the retry
+                    )
+                    response_text = retry_response.content[0].text
+                    structured_data = self._extract_json_from_response(response_text)
 
-                return self.create_response(
-                    success=True,
-                    message="Research completed but structured data extraction failed",
-                    data={"raw_research": response_text},
-                    warnings=["Could not extract structured JSON from research"],
-                )
+                if structured_data:
+                    # Validate output completeness
+                    required_fields = [
+                        "market_overview",
+                        "competitive_landscape", 
+                        "comparable_companies",
+                    ]
+                    is_valid, missing = self._validate_output_completeness(
+                        structured_data,
+                        required_fields,
+                        min_required=2,  # At least 2 of 3 required
+                    )
+                    
+                    if is_valid or attempt == max_retries:
+                        # Create MarketResearch object
+                        market_research = self._create_market_research(structured_data)
+                        
+                        if not is_valid:
+                            self.logger.warning(
+                                "research_incomplete_output",
+                                missing_fields=missing,
+                                attempt=attempt + 1,
+                            )
+
+                        self.logger.info(
+                            "research_completed",
+                            num_comparables=len(market_research.comparable_companies),
+                            confidence_score=market_research.confidence_score,
+                        )
+
+                        warnings = []
+                        if not is_valid:
+                            warnings.append(f"Incomplete output: missing {', '.join(missing)}")
+
+                        return self.create_response(
+                            success=True,
+                            message="Market research completed successfully",
+                            data=market_research.model_dump(),
+                            confidence_score=market_research.confidence_score,
+                            warnings=warnings,
+                        )
+                elif attempt < max_retries:
+                    self.logger.warning(
+                        "research_json_extraction_failed_retrying",
+                        attempt=attempt + 1,
+                    )
+                    continue
+
+            # Final fallback - return raw research
+            self.logger.warning("research_json_extraction_failed_final")
+
+            return self.create_response(
+                success=True,
+                message="Research completed but structured data extraction failed",
+                data={"raw_research": response_text},
+                warnings=["Could not extract structured JSON from research"],
+            )
 
         except Exception as e:
             self.logger.error("research_process_failed", error=str(e))
