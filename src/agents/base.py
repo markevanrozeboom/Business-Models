@@ -228,7 +228,7 @@ class BaseAgent(ABC):
     def _extract_json_from_response(
         self, 
         text: str, 
-        max_attempts: int = 5
+        max_attempts: int = 6
     ) -> Optional[Dict[str, Any]]:
         """
         Extract JSON from Claude's response using multiple strategies.
@@ -251,6 +251,8 @@ class BaseAgent(ABC):
             lambda t: self._extract_first_json_block(t),
             # Strategy 5: Find JSON between specific markers
             lambda t: self._extract_between_markers(t),
+            # Strategy 6: Try to repair truncated JSON
+            lambda t: self._repair_truncated_json(t),
         ]
 
         for i, strategy in enumerate(strategies[:max_attempts], 1):
@@ -361,6 +363,88 @@ class BaseAgent(ABC):
                 continue
         
         return None
+
+    def _repair_truncated_json(self, text: str) -> Optional[Dict[str, Any]]:
+        """
+        Attempt to repair truncated JSON by finding the JSON start and closing brackets/braces.
+        This handles cases where the response was cut off due to max_tokens.
+        """
+        # Find JSON start (either in markdown block or direct)
+        json_start = -1
+        
+        # Try markdown block first
+        if "```json" in text:
+            json_start = text.find("```json") + len("```json")
+        elif "```" in text and "{" in text[text.find("```"):]:
+            json_start = text.find("```") + len("```")
+        elif text.strip().startswith("{"):
+            json_start = 0
+        
+        if json_start == -1:
+            return None
+        
+        # Find where JSON actually starts (skip whitespace)
+        while json_start < len(text) and text[json_start] in " \n\r\t":
+            json_start += 1
+        
+        if json_start >= len(text) or text[json_start] != "{":
+            return None
+        
+        # Extract JSON and try to repair it
+        json_str = text[json_start:].strip()
+        
+        # Remove trailing markdown closing if present
+        if json_str.endswith("```"):
+            json_str = json_str[:-3].strip()
+        
+        # Count brackets and braces to see if JSON is incomplete
+        open_braces = json_str.count("{")
+        close_braces = json_str.count("}")
+        open_brackets = json_str.count("[")
+        close_brackets = json_str.count("]")
+        
+        # If incomplete, try to close it
+        if open_braces > close_braces or open_brackets > close_brackets:
+            # Find the last complete value (not in the middle of a string)
+            # Simple heuristic: find last complete key-value pair or array element
+            last_comma = json_str.rfind(",")
+            if last_comma != -1:
+                # Remove incomplete trailing content after last comma
+                # Find the position after the last complete value
+                # This is a heuristic - we'll try to find where we can safely truncate
+                safe_end = last_comma
+                # Look backwards to find a complete value boundary
+                for i in range(last_comma - 1, -1, -1):
+                    if json_str[i] in "}]":
+                        safe_end = i + 1
+                        break
+                    elif json_str[i] in "{[":
+                        # We're in a nested structure, keep going
+                        continue
+                
+                # Try to extract up to safe point and close brackets
+                partial_json = json_str[:safe_end].rstrip().rstrip(",")
+                
+                # Close any open structures
+                braces_to_close = partial_json.count("{") - partial_json.count("}")
+                brackets_to_close = partial_json.count("[") - partial_json.count("]")
+                
+                # Add closing brackets/braces
+                if brackets_to_close > 0:
+                    partial_json += "]" * brackets_to_close
+                if braces_to_close > 0:
+                    partial_json += "}" * braces_to_close
+                
+                try:
+                    return json.loads(partial_json)
+                except json.JSONDecodeError:
+                    pass
+        
+        # If not truncated or repair failed, try parsing as-is
+        try:
+            return json.loads(json_str)
+        except json.JSONDecodeError:
+            return None
 
     def _validate_output_completeness(
         self,

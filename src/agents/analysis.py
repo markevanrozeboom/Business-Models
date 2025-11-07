@@ -24,7 +24,7 @@ class AnalysisAgent(BaseAgent):
         super().__init__(
             agent_type=AgentType.ANALYSIS,
             temperature=0.3,  # Lower temperature for analytical rigor
-            max_tokens=8000,
+            max_tokens=16000,  # Increased for comprehensive analysis (was 8000)
         )
 
     def get_system_prompt(self) -> str:

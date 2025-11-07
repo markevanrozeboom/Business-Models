@@ -29,7 +29,7 @@ class SynthesisAgent(BaseAgent):
         super().__init__(
             agent_type=AgentType.SYNTHESIS,
             temperature=0.5,  # Balanced for clear writing
-            max_tokens=8000,
+            max_tokens=16000,  # Increased for comprehensive reports (was 8000)
         )
 
     def get_system_prompt(self) -> str:

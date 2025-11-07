@@ -22,7 +22,7 @@ class ResearchAgent(BaseAgent):
         super().__init__(
             agent_type=AgentType.RESEARCH,
             temperature=0.5,  # Balanced for factual research
-            max_tokens=8000,  # More tokens for comprehensive research
+            max_tokens=16000,  # Increased for comprehensive research (was 8000)
         )
 
     def get_system_prompt(self) -> str:
