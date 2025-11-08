@@ -13,6 +13,7 @@ Transform business ideas into comprehensive investment reports in minutes, not d
 - [System Architecture](#system-architecture)
 - [Installation](#installation)
 - [Usage Guide](#usage-guide)
+- [Gmail & Google Forms Integration](#gmail--google-forms-integration)
 - [Configuration](#configuration)
 - [Understanding the Workflow](#understanding-the-workflow)
 - [Output Files](#output-files)
@@ -52,6 +53,8 @@ The Agentic Business Evaluation System automatically evaluates business ideas by
 ✅ **Comprehensiveness**: Market research + financials + risk assessment in one
 ✅ **Quality**: VC-grade analysis with confidence scoring
 ✅ **Scalability**: Evaluate hundreds of ideas efficiently
+✅ **Multiple Input Methods**: Accept submissions via Python API, Gmail, or Google Forms
+✅ **Interactive Follow-ups**: Automatically asks for missing information via email
 
 ---
 
@@ -395,6 +398,66 @@ if workflow_state.financial_model:
     base_case = workflow_state.financial_model.scenarios[1]
     revenue_y3 = base_case.year3_revenue
 ```
+
+---
+
+## 📧 Gmail & Google Forms Integration
+
+### NEW: Accept Submissions via Email and Web Forms!
+
+The system now supports receiving business evaluation requests through:
+- **Gmail** - Monitor your inbox for evaluation requests
+- **Google Forms** - Collect structured submissions via web form
+
+When submissions are incomplete, the system automatically:
+- Identifies missing information
+- Generates follow-up questions
+- Sends questions via email
+- Processes responses when complete
+
+### Quick Setup
+
+1. **Enable APIs** in Google Cloud Console:
+   - Gmail API
+   - Google Forms API
+
+2. **Download OAuth credentials** as `credentials.json`
+
+3. **Run Gmail Monitor**:
+   ```bash
+   python examples/gmail_monitor.py
+   ```
+
+4. **Or Run Google Forms Monitor**:
+   ```bash
+   python examples/forms_monitor.py --form-id YOUR_FORM_ID
+   ```
+
+📖 **Full Setup Guide**: See [INTEGRATION_SETUP.md](INTEGRATION_SETUP.md) for detailed instructions.
+
+### Example Email Submission
+
+Send an email to your monitored Gmail account with:
+
+**Subject**: Business Evaluation Request
+
+**Body**:
+```
+Business Name: TechFlow AI
+Industry: B2B SaaS
+Problem: Sales teams waste 20 hours/week on manual data entry
+Solution: AI-powered sales automation platform
+Target Market: Mid-market B2B companies ($10M-$500M revenue)
+Revenue Model: $199/user/month subscription
+Team: 3 technical co-founders with 10+ years experience
+Seeking: $2M seed round
+```
+
+The system will:
+1. Process your submission
+2. Ask follow-up questions if needed (via email)
+3. Run the complete evaluation
+4. Send you the results via email
 
 ---
 

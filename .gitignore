@@ -62,3 +62,9 @@ models/*.xlsx
 models/*.xls
 data/cache/
 temp/
+
+# Google API credentials and tokens
+credentials.json
+token.pickle
+token_forms.pickle
+processed_responses.json
