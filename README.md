@@ -403,32 +403,39 @@ if workflow_state.financial_model:
 
 ## 📧 Gmail & Google Forms Integration
 
-### NEW: Accept Submissions via Email and Web Forms!
+### NEW: Accept Submissions via Dedicated Email and Web Forms!
 
 The system now supports receiving business evaluation requests through:
-- **Gmail** - Monitor your inbox for evaluation requests
+- **Gmail** - Monitor a DEDICATED email inbox (e.g., evaluations@yourcompany.com) for evaluation requests
 - **Google Forms** - Collect structured submissions via web form
+
+**IMPORTANT**: Gmail integration uses a **DEDICATED EMAIL ADDRESS** for business evaluations:
+- Create: `evaluations@yourcompany.com` (or similar)
+- Users send requests TO: `evaluations@yourcompany.com`
+- System sends responses FROM: `evaluations@yourcompany.com` TO: original sender
 
 When submissions are incomplete, the system automatically:
 - Identifies missing information
 - Generates follow-up questions
-- Sends questions via email
+- Sends questions via email to the original sender
 - Processes responses when complete
 
 ### Quick Setup
 
-1. **Enable APIs** in Google Cloud Console:
+1. **Create dedicated Gmail account**: `evaluations@yourcompany.com`
+
+2. **Enable APIs** in Google Cloud Console:
    - Gmail API
    - Google Forms API
 
-2. **Download OAuth credentials** as `credentials.json`
+3. **Download OAuth credentials** as `credentials.json`
 
-3. **Run Gmail Monitor**:
+4. **Run Gmail Monitor** (authenticate with dedicated account):
    ```bash
    python examples/gmail_monitor.py
    ```
 
-4. **Or Run Google Forms Monitor**:
+5. **Or Run Google Forms Monitor**:
    ```bash
    python examples/forms_monitor.py --form-id YOUR_FORM_ID
    ```
@@ -437,7 +444,7 @@ When submissions are incomplete, the system automatically:
 
 ### Example Email Submission
 
-Send an email to your monitored Gmail account with:
+Users send an email TO your dedicated address (evaluations@yourcompany.com):
 
 **Subject**: Business Evaluation Request
 
@@ -454,10 +461,11 @@ Seeking: $2M seed round
 ```
 
 The system will:
-1. Process your submission
-2. Ask follow-up questions if needed (via email)
-3. Run the complete evaluation
-4. Send you the results via email
+1. Monitor evaluations@yourcompany.com inbox
+2. Process the submission from the user
+3. Ask follow-up questions if needed (FROM evaluations@yourcompany.com TO user)
+4. Run the complete evaluation
+5. Send results via email (FROM evaluations@yourcompany.com TO user)
 
 ---
 

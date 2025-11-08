@@ -2,12 +2,16 @@
 
 ## Quick Start
 
-### 1. Gmail Integration - Monitor Email for Requests
+### 1. Gmail Integration - Monitor DEDICATED Email Inbox
+
+**IMPORTANT**: Use a DEDICATED email account (e.g., evaluations@yourcompany.com)
 
 ```bash
 # First time setup (one-time)
-# 1. Download credentials.json from Google Cloud Console
-# 2. Place in project root
+# 1. Create dedicated Gmail account (evaluations@yourcompany.com)
+# 2. Download credentials.json from Google Cloud Console
+# 3. Place in project root
+# 4. Run script and authenticate with DEDICATED account
 
 # Run the monitor
 python examples/gmail_monitor.py
@@ -16,9 +20,13 @@ python examples/gmail_monitor.py
 python examples/gmail_monitor.py --single-run
 ```
 
-**Send a test email** to your monitored Gmail account:
+**Users send evaluation requests TO**: evaluations@yourcompany.com
 - **Subject**: "Business Evaluation Request"  
-- **Body**: Your business description
+- **Body**: Their business description
+
+**System responds FROM**: evaluations@yourcompany.com
+- Follow-up questions sent to original sender
+- Results sent to original sender
 
 ### 2. Google Forms Integration - Web Form Submissions
 
@@ -158,13 +166,20 @@ python examples/forms_monitor.py --form-id ABC123 --interval 120
 
 ### "No emails found"
 - Check subject has a trigger keyword
-- Email must be unread
+- Email must be unread in the dedicated account's inbox
 - Try `--since-hours 48` to look further back
+- Verify you're monitoring the correct dedicated account
 
 ### "Authentication failed"
 - Delete `token.pickle` and re-authenticate
+- **IMPORTANT**: Authenticate with your DEDICATED evaluation account, not personal account
 - Verify credentials.json is valid
 - Check APIs are enabled in Google Cloud Console
+
+### "Wrong account authenticated"
+- Delete `token.pickle`
+- Run monitor again
+- When browser opens, sign in with DEDICATED account (evaluations@yourcompany.com)
 
 ### "Form responses not found"
 - Verify Form ID is correct (from URL)

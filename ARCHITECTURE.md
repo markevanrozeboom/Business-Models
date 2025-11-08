@@ -2,6 +2,11 @@
 
 ## System Overview
 
+**IMPORTANT**: Gmail integration uses a DEDICATED EMAIL ADDRESS (e.g., evaluations@yourcompany.com)
+- Users send requests TO: evaluations@yourcompany.com
+- System monitors THAT specific inbox
+- System responds FROM: evaluations@yourcompany.com TO: original sender
+
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │                    Business Evaluation System                        │
@@ -18,8 +23,11 @@
 │              │          │  Integration │          │ Integration  │
 │  Python API  │          │              │          │              │
 │  (original)  │          │  Monitor     │          │  Monitor     │
-└──────────────┘          │  Inbox       │          │  Form        │
-        │                 │              │          │  Responses   │
+└──────────────┘          │  DEDICATED   │          │  Form        │
+        │                 │  Inbox       │          │  Responses   │
+        │                 │  (e.g.       │          │              │
+        │                 │  evaluations │          │              │
+        │                 │  @company)   │          │              │
         │                 └──────────────┘          └──────────────┘
         │                         │                         │
         │                         └─────────┬───────────────┘
@@ -88,10 +96,52 @@
 
 ## Integration Flow Diagram
 
+### Email Flow (Dedicated Inbox Model)
+
+```
+User (jane@example.com) 
+sends email TO evaluations@yourcompany.com
+      │
+      ▼
+System monitors evaluations@yourcompany.com inbox
+      │
+      ▼
+Extract Info from jane@example.com ──→ Completeness: 45%
+      │
+      ▼
+Identify Missing Info
+      │
+      ▼
+Generate Questions
+      │
+      ▼
+Send Email FROM evaluations@yourcompany.com 
+           TO jane@example.com
+      │
+      ▼
+Jane replies TO evaluations@yourcompany.com
+      │
+      ▼
+System detects reply in thread
+      │
+      ▼
+Merge & Re-extract ──→ Completeness: 82%
+      │
+      ▼
+Start Evaluation
+      │
+      ▼
+Generate Reports
+      │
+      ▼
+Email Results FROM evaluations@yourcompany.com 
+              TO jane@example.com
+```
+
 ### Complete Submission (80%+ completeness)
 
 ```
-User Email/Form
+User Email/Form TO evaluations@yourcompany.com
       │
       ▼
 Extract Info ──→ Completeness: 85%
@@ -103,13 +153,13 @@ Start Evaluation
 Generate Reports
       │
       ▼
-Email Results
+Email Results FROM evaluations@yourcompany.com TO user
 ```
 
 ### Incomplete Submission (with Follow-ups)
 
 ```
-User Email/Form
+User Email/Form TO evaluations@yourcompany.com
       │
       ▼
 Extract Info ──→ Completeness: 45%
@@ -121,13 +171,14 @@ Identify Missing Info
 Generate Questions
       │
       ▼
-Send Email Follow-up (Round 1)
+Send Email Follow-up FROM evaluations@yourcompany.com 
+                     TO user (Round 1)
       │
       ▼
 Wait for Response
       │
       ▼
-User Replies
+User Replies TO evaluations@yourcompany.com
       │
       ▼
 Merge & Re-extract ──→ Completeness: 68%
@@ -160,14 +211,18 @@ Email Results
 ## Module Responsibilities
 
 ### Gmail Integration (`gmail_integration.py`)
-- **Purpose**: Interface with Gmail API
+- **Purpose**: Interface with Gmail API for DEDICATED email account
+- **Dedicated Account Model**: 
+  - Monitors a specific email account (e.g., evaluations@yourcompany.com)
+  - NOT for monitoring personal email
+  - All responses sent FROM that dedicated account
 - **Key Functions**:
-  - Authenticate via OAuth 2.0
-  - Monitor inbox for trigger keywords
-  - Fetch unread messages
+  - Authenticate via OAuth 2.0 (with dedicated account)
+  - Monitor dedicated inbox for trigger keywords
+  - Fetch unread messages from dedicated inbox
   - Parse email content (text/html)
-  - Send emails
-  - Reply to existing threads
+  - Send emails FROM dedicated account
+  - Reply to existing threads FROM dedicated account TO original sender
   - Mark as read
   - Add labels
 
@@ -204,9 +259,10 @@ Email Results
 ### Email Processing
 
 ```
-Gmail Message
+Gmail Message received at evaluations@yourcompany.com
+from jane@example.com
     │
-    ├─ Headers (from, subject, date)
+    ├─ Headers (from: jane@example.com, subject, date)
     │
     ├─ Body (text/html/multipart)
     │
@@ -215,7 +271,7 @@ Gmail Message
           ▼
 Email Questioner
     │
-    ├─ Extract business info
+    ├─ Extract business info from jane@example.com
     │
     ├─ Calculate completeness
     │
@@ -224,6 +280,8 @@ Email Questioner
           ├─ Complete ──→ Start Evaluation
           │
           └─ Incomplete ──→ Send Questions
+                              FROM evaluations@yourcompany.com
+                              TO jane@example.com
                               │
                               └─ Track in active_conversations
 ```
@@ -232,10 +290,11 @@ Email Questioner
 
 ```
 Google Form Response
+from jane@example.com
     │
     ├─ Response ID
     │
-    ├─ Email address
+    ├─ Email address (jane@example.com)
     │
     ├─ Timestamp
     │
@@ -251,7 +310,7 @@ Format as Description
           ▼
 Email Questioner
     │
-    └─ (same flow as email)
+    └─ (same flow as email, responses sent TO jane@example.com)
 ```
 
 ## Configuration Options

@@ -19,8 +19,28 @@ This guide explains how to set up the Business Evaluation System to accept submi
 The system now supports three ways to initiate business evaluations:
 
 1. **Direct Python API** - Programmatic evaluation (original method)
-2. **Gmail Integration** - Monitor inbox for evaluation requests via email
+2. **Gmail Integration** - Monitor a DEDICATED email inbox for evaluation requests
 3. **Google Forms Integration** - Collect structured submissions via web form
+
+### How Gmail Integration Works
+
+**IMPORTANT**: This system uses a **DEDICATED EMAIL ADDRESS** for evaluations.
+
+**Setup Model**:
+- Create a dedicated Gmail account (e.g., `evaluations@yourcompany.com`)
+- Configure the system to monitor THAT dedicated account's inbox
+- Users send evaluation requests TO: `evaluations@yourcompany.com`
+- System sends follow-ups and results FROM: `evaluations@yourcompany.com` TO: original sender
+
+**Example Flow**:
+```
+1. User (jane@example.com) sends email TO evaluations@yourcompany.com
+2. System monitors evaluations@yourcompany.com inbox
+3. System processes request from jane@example.com
+4. If incomplete, system sends follow-up FROM evaluations@yourcompany.com TO jane@example.com
+5. Jane replies to evaluations@yourcompany.com
+6. System sends results FROM evaluations@yourcompany.com TO jane@example.com
+```
 
 When submissions are incomplete, the system can automatically:
 - Identify missing information
@@ -78,7 +98,19 @@ When submissions are incomplete, the system can automatically:
 
 - Completed Google Cloud Console setup
 - `credentials.json` in project root
-- Gmail account with API access enabled
+- **DEDICATED Gmail account for evaluations** (e.g., evaluations@yourcompany.com)
+
+### Important: Create a Dedicated Email Account
+
+**DO NOT use your personal Gmail account.** Create a dedicated business email:
+
+1. Go to [Gmail](https://mail.google.com)
+2. Create a new account specifically for business evaluations
+3. Example: `evaluations@yourcompany.com` or `bizeval@yourcompany.com`
+4. This account will:
+   - Receive evaluation requests from users
+   - Send follow-up questions to users
+   - Send results back to users
 
 ### Installation
 
@@ -93,11 +125,18 @@ pip install -r requirements.txt
 The first time you run the Gmail integration, it will:
 
 1. Open a browser window for OAuth authentication
-2. Ask you to sign in with your Google account
+2. **IMPORTANT**: Sign in with your DEDICATED evaluation account (evaluations@yourcompany.com)
 3. Request permissions for Gmail access (read, send, modify)
 4. Save an authentication token as `token.pickle`
 
 **Note**: Future runs will use the saved token without requiring re-authentication.
+
+### Publicizing Your Evaluation Email
+
+Once set up, communicate the dedicated email to users:
+- "Send business evaluation requests to: evaluations@yourcompany.com"
+- "Include your business information and we'll evaluate it within 24 hours"
+- Users send TO this address, receive responses FROM this address
 
 ### Gmail Trigger Keywords
 

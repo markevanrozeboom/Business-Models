@@ -26,11 +26,21 @@ SCOPES = [
 
 class GmailIntegration:
     """
-    Gmail Integration for monitoring inbox and sending emails.
+    Gmail Integration for monitoring a dedicated business evaluation inbox.
+    
+    This class is designed to monitor a SPECIFIC DEDICATED EMAIL ADDRESS
+    (e.g., evaluations@yourcompany.com) for business evaluation requests.
+    Responses are sent FROM that dedicated address TO the original sender.
+    
+    Setup:
+    1. Create a dedicated Gmail account for evaluations (e.g., evaluations@yourcompany.com)
+    2. Set up OAuth credentials for that account
+    3. This script monitors that account's inbox
+    4. Replies are sent from that account back to requesters
     
     This class provides functionality to:
-    - Monitor Gmail inbox for business evaluation requests
-    - Send follow-up questions via email
+    - Monitor the dedicated inbox for business evaluation requests
+    - Send follow-up questions via email to original senders
     - Mark processed emails as read
     """
     

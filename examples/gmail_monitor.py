@@ -1,17 +1,28 @@
 #!/usr/bin/env python3
 """
-Gmail Monitor Script
+Gmail Monitor Script - Monitors a DEDICATED email inbox for business evaluations
 
-This script monitors a Gmail inbox for business evaluation requests and
-processes them through the evaluation workflow. It can also handle follow-up
-questions via email when more information is needed.
+This script monitors a SPECIFIC DEDICATED GMAIL ACCOUNT (e.g., evaluations@yourcompany.com)
+for business evaluation requests and processes them through the evaluation workflow.
+Responses are sent FROM the dedicated account TO the original sender.
+
+IMPORTANT: This is NOT for monitoring your personal email. Set up a dedicated
+business email account (e.g., evaluations@company.com) for this purpose.
 
 Setup:
-1. Enable Gmail API in Google Cloud Console
-2. Download OAuth 2.0 credentials as 'credentials.json'
-3. Place credentials.json in the project root directory
-4. Run this script - it will open a browser for OAuth authentication on first run
-5. The authentication token will be saved as 'token.pickle' for future use
+1. Create a dedicated Gmail account for evaluations (e.g., evaluations@yourcompany.com)
+2. Enable Gmail API in Google Cloud Console for that account
+3. Download OAuth 2.0 credentials as 'credentials.json'
+4. Place credentials.json in the project root directory
+5. Run this script - it will open a browser for OAuth authentication
+6. Authenticate with the DEDICATED ACCOUNT (evaluations@yourcompany.com)
+7. The authentication token will be saved as 'token.pickle' for future use
+
+Usage:
+- Users send evaluation requests TO: evaluations@yourcompany.com
+- System monitors that inbox
+- System sends follow-ups FROM: evaluations@yourcompany.com TO: original sender
+- System sends results FROM: evaluations@yourcompany.com TO: original sender
 """
 
 import os
@@ -79,11 +90,22 @@ def main():
             "2. Create a new project or select existing one\n"
             "3. Enable Gmail API\n"
             "4. Create OAuth 2.0 credentials (Desktop application)\n"
-            "5. Download credentials and save as 'credentials.json'"
+            "5. Download credentials and save as 'credentials.json'\n"
+            "\n"
+            "IMPORTANT: When running for first time, authenticate with your\n"
+            "DEDICATED evaluation email account (e.g., evaluations@yourcompany.com),\n"
+            "NOT your personal Gmail account."
         )
         sys.exit(1)
     
     try:
+        logger.info("="*60)
+        logger.info("IMPORTANT: This script monitors a DEDICATED email account")
+        logger.info("Example: evaluations@yourcompany.com")
+        logger.info("Users send requests TO that address")
+        logger.info("System responds FROM that address TO original sender")
+        logger.info("="*60)
+        
         # Initialize Gmail integration
         gmail = GmailIntegration(
             credentials_path=args.credentials,
@@ -100,6 +122,7 @@ def main():
         processed_ids = set()
         
         logger.info("Gmail monitor initialized successfully")
+        logger.info(f"Monitoring inbox for evaluation requests")
         logger.info(f"Checking for new requests every {args.interval} seconds")
         
         while True:
