@@ -13,6 +13,7 @@ Transform business ideas into comprehensive investment reports in minutes, not d
 - [System Architecture](#system-architecture)
 - [Installation](#installation)
 - [Usage Guide](#usage-guide)
+- [Gmail & Google Forms Integration](#gmail--google-forms-integration)
 - [Configuration](#configuration)
 - [Understanding the Workflow](#understanding-the-workflow)
 - [Output Files](#output-files)
@@ -52,6 +53,8 @@ The Agentic Business Evaluation System automatically evaluates business ideas by
 ✅ **Comprehensiveness**: Market research + financials + risk assessment in one
 ✅ **Quality**: VC-grade analysis with confidence scoring
 ✅ **Scalability**: Evaluate hundreds of ideas efficiently
+✅ **Multiple Input Methods**: Accept submissions via Python API, Gmail, or Google Forms
+✅ **Interactive Follow-ups**: Automatically asks for missing information via email
 
 ---
 
@@ -395,6 +398,74 @@ if workflow_state.financial_model:
     base_case = workflow_state.financial_model.scenarios[1]
     revenue_y3 = base_case.year3_revenue
 ```
+
+---
+
+## 📧 Gmail & Google Forms Integration
+
+### NEW: Accept Submissions via Dedicated Email and Web Forms!
+
+The system now supports receiving business evaluation requests through:
+- **Gmail** - Monitor a DEDICATED email inbox (e.g., evaluations@yourcompany.com) for evaluation requests
+- **Google Forms** - Collect structured submissions via web form
+
+**IMPORTANT**: Gmail integration uses a **DEDICATED EMAIL ADDRESS** for business evaluations:
+- Create: `evaluations@yourcompany.com` (or similar)
+- Users send requests TO: `evaluations@yourcompany.com`
+- System sends responses FROM: `evaluations@yourcompany.com` TO: original sender
+
+When submissions are incomplete, the system automatically:
+- Identifies missing information
+- Generates follow-up questions
+- Sends questions via email to the original sender
+- Processes responses when complete
+
+### Quick Setup
+
+1. **Create dedicated Gmail account**: `evaluations@yourcompany.com`
+
+2. **Enable APIs** in Google Cloud Console:
+   - Gmail API
+   - Google Forms API
+
+3. **Download OAuth credentials** as `credentials.json`
+
+4. **Run Gmail Monitor** (authenticate with dedicated account):
+   ```bash
+   python examples/gmail_monitor.py
+   ```
+
+5. **Or Run Google Forms Monitor**:
+   ```bash
+   python examples/forms_monitor.py --form-id YOUR_FORM_ID
+   ```
+
+📖 **Full Setup Guide**: See [INTEGRATION_SETUP.md](INTEGRATION_SETUP.md) for detailed instructions.
+
+### Example Email Submission
+
+Users send an email TO your dedicated address (evaluations@yourcompany.com):
+
+**Subject**: Business Evaluation Request
+
+**Body**:
+```
+Business Name: TechFlow AI
+Industry: B2B SaaS
+Problem: Sales teams waste 20 hours/week on manual data entry
+Solution: AI-powered sales automation platform
+Target Market: Mid-market B2B companies ($10M-$500M revenue)
+Revenue Model: $199/user/month subscription
+Team: 3 technical co-founders with 10+ years experience
+Seeking: $2M seed round
+```
+
+The system will:
+1. Monitor evaluations@yourcompany.com inbox
+2. Process the submission from the user
+3. Ask follow-up questions if needed (FROM evaluations@yourcompany.com TO user)
+4. Run the complete evaluation
+5. Send results via email (FROM evaluations@yourcompany.com TO user)
 
 ---
 
