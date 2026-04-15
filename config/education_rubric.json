@@ -1,0 +1,109 @@
+{
+  "name": "Joe's Education Business Plan Rubric",
+  "version": "1.0.0",
+  "description": "24-criterion evaluation rubric for 2Hr Learning / Alpha education business units, derived from Joe's Business Plan One-Pager",
+  "recommendation_thresholds": {
+    "APPROVE": { "min_score": 7.0, "no_category_below": 5.0 },
+    "APPROVE_WITH_FIX": { "min_score": 5.0, "max_critical_issues": 3 },
+    "REJECT": { "below_score": 5.0 }
+  },
+  "categories": [
+    {
+      "key": "mission_alignment",
+      "label": "Mission Alignment",
+      "weight": 0.15,
+      "criteria": [
+        { "id": "MA-1", "question": "Does the plan unlock potential for EVERY kid — not just a select few?", "max_score": 10 },
+        { "id": "MA-2", "question": "Will kids love this school / experience? Is joy and engagement central?", "max_score": 10 },
+        { "id": "MA-3", "question": "Does it embody High Standards / High Support — rigorous academics with strong pastoral care?", "max_score": 10 }
+      ]
+    },
+    {
+      "key": "academic_excellence",
+      "label": "Academic & Life Skills",
+      "weight": 0.15,
+      "criteria": [
+        { "id": "AE-1", "question": "Does the plan target >2x learning pace (measured via MAP or equivalent standardized testing)?", "max_score": 10 },
+        { "id": "AE-2", "question": "Are there 3rd-party benchmarks for life skills development (creativity, leadership, resilience)?", "max_score": 10 },
+        { "id": "AE-3", "question": "Does the plan benchmark against the best schools globally, not just local averages?", "max_score": 10 }
+      ]
+    },
+    {
+      "key": "product_pricing",
+      "label": "Product & Pricing Design",
+      "weight": 0.15,
+      "criteria": [
+        { "id": "PP-1", "question": "Is there a product range spanning $150K/yr (premium) down to $1K/yr (broad access)?", "max_score": 10 },
+        { "id": "PP-2", "question": "Are lower-price tiers used as sampling / funnel for higher-value offerings?", "max_score": 10 },
+        { "id": "PP-3", "question": "Is the product quality genuinely world-class at each price point?", "max_score": 10 }
+      ]
+    },
+    {
+      "key": "gtm_community",
+      "label": "GTM & Community",
+      "weight": 0.10,
+      "criteria": [
+        { "id": "GC-1", "question": "Is the go-to-market strategy direct-to-parent (not reliant on school district sales)?", "max_score": 10 },
+        { "id": "GC-2", "question": "Is there a community flywheel — parents referring parents, student word-of-mouth?", "max_score": 10 },
+        { "id": "GC-3", "question": "Does the marketing spend threshold tie to proven academic results (e.g., MAP scores)?", "max_score": 10 }
+      ]
+    },
+    {
+      "key": "ai_scalability",
+      "label": "AI & Scalability",
+      "weight": 0.15,
+      "criteria": [
+        { "id": "AS-1", "question": "Are there AI-powered feedback loops that maintain quality as enrollment scales?", "max_score": 10 },
+        { "id": "AS-2", "question": "Does the model have flywheel / network effects (more students = better product)?", "max_score": 10 },
+        { "id": "AS-3", "question": "Can the platform reach 100K+ students without proportional cost increase?", "max_score": 10 }
+      ]
+    },
+    {
+      "key": "financial_model",
+      "label": "Financial Model",
+      "weight": 0.15,
+      "criteria": [
+        { "id": "FM-1", "question": "Does the plan demonstrate high ROIC (return on invested capital)?", "max_score": 10 },
+        { "id": "FM-2", "question": "Is there best-in-class customer retention (>90% annual)?", "max_score": 10 },
+        { "id": "FM-3", "question": "Is the model asset-light (minimal capital expenditure per student)?", "max_score": 10 }
+      ]
+    },
+    {
+      "key": "talent_strategy",
+      "label": "Talent Strategy",
+      "weight": 0.05,
+      "criteria": [
+        { "id": "TS-1", "question": "Is there a scalable talent pipeline for guides/teachers at target student volumes?", "max_score": 10 },
+        { "id": "TS-2", "question": "Does the compensation model attract top educators while maintaining unit economics?", "max_score": 10 },
+        { "id": "TS-3", "question": "Is there an AI-augmented coaching model that amplifies human talent?", "max_score": 10 }
+      ]
+    },
+    {
+      "key": "access_funding",
+      "label": "Access & Funding Pathway",
+      "weight": 0.10,
+      "criteria": [
+        { "id": "AF-1", "question": "Does the plan leverage government funding (ESA, vouchers, charter grants) for broad access?", "max_score": 10 },
+        { "id": "AF-2", "question": "Is there a clear path from premium pricing to subsidized/free access for underserved families?", "max_score": 10 },
+        { "id": "AF-3", "question": "Does the plan address regulatory requirements for funding eligibility?", "max_score": 10 }
+      ]
+    }
+  ],
+  "data_sources": {
+    "budget_model": "Google Sheets (linked per BU)",
+    "budget_plan": "Google Docs (linked per BU)",
+    "financial_model": "Jack McDonald's sensitivity analysis (where applicable)",
+    "enrollment_data": "Consolidated Budget Summary",
+    "academic_results": "MAP testing data, 3rd-party benchmarks"
+  },
+  "output_format": {
+    "recommendation": "APPROVE | APPROVE_WITH_FIX | REJECT",
+    "overall_score": "0-10 weighted average",
+    "confidence_score": "0-100%",
+    "executive_summary": "2-3 sentence assessment",
+    "category_scores": "Score per category with justification and evidence",
+    "key_findings": "Positive signals (array)",
+    "critical_issues": "Blocking concerns (array)",
+    "financial_summary": "Revenue, margin, ROIC summary"
+  }
+}
